@@ -11,6 +11,8 @@ import { WatchlistService } from './watchlist.service';
 import { WatchlistDTO } from './dto';
 import { JwtAuthGuard } from '../../guards/jwt-guard';
 import { ApiResponse, ApiTags } from '@nestjs/swagger';
+import { CreateAssetResponse } from './response';
+// import { isBoolean } from 'class-validator';
 
 @Controller('watchlist')
 export class WatchlistController {
@@ -19,12 +21,14 @@ export class WatchlistController {
   @ApiTags('API')
   @ApiResponse({
     status: 201,
-    type: WatchlistDTO,
+    type: CreateAssetResponse,
   })
   @UseGuards(JwtAuthGuard)
   @Post('create')
-  createAsset(@Body() assetDto: WatchlistDTO, @Req() request: any) {
-    console.log(request);
+  createAsset(
+    @Body() assetDto: WatchlistDTO,
+    @Req() request: any,
+  ): Promise<CreateAssetResponse> {
     return this.watchlistService.createAsset(assetDto, request.user);
   }
 
