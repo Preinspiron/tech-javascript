@@ -54,17 +54,17 @@ export class UserService {
       throw new Error(err);
     }
   }
-  async updateUser(dto: UpdateUserDTO, email: string): Promise<UpdateUserDTO> {
+  async updateUser(dto: UpdateUserDTO, id: string): Promise<UpdateUserDTO> {
     try {
-      await this.userRepositories.update(dto, { where: { email } });
+      await this.userRepositories.update(dto, { where: { id } });
       return dto;
     } catch (err) {
       throw new Error(err);
     }
   }
-  async deleteUser(email: string): Promise<boolean> {
+  async deleteUser(id: string): Promise<boolean> {
     try {
-      await this.userRepositories.destroy({ where: { email } });
+      await this.userRepositories.destroy({ where: { id } });
       return true;
     } catch (err) {
       throw new Error(err);

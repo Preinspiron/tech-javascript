@@ -29,7 +29,8 @@ export class WatchlistController {
     @Body() assetDto: WatchlistDTO,
     @Req() request: any,
   ): Promise<CreateAssetResponse> {
-    return this.watchlistService.createAsset(assetDto, request.user);
+    const { id } = request.user;
+    return this.watchlistService.createAsset(assetDto, id);
   }
 
   @ApiTags('API')
@@ -38,7 +39,7 @@ export class WatchlistController {
   })
   @UseGuards(JwtAuthGuard)
   @Delete()
-  deleteAsset(@Query('id') assetId: string, @Req() request: any) {
+  deleteAsset(@Query('id') assetId: string, @Req() request: any): Promise<boolean> {
     const { id } = request.user;
     return this.watchlistService.deleteAsset(id, assetId);
   }

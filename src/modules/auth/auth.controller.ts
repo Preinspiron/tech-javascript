@@ -8,15 +8,17 @@ import { ApiResponse, ApiTags } from '@nestjs/swagger';
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
+
   @ApiTags('API')
   @ApiResponse({
     status: 201,
     type: CreateUserDTO,
   })
   @Post('register')
-  registerUsers(@Body() dto: CreateUserDTO): Promise<CreateUserDTO> {
+  registerUsers(@Body() dto: CreateUserDTO): Promise<AuthUserResponse> {
     return this.authService.registerUser(dto);
   }
+
   @ApiTags('API')
   @ApiResponse({
     status: 200,

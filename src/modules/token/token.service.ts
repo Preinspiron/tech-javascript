@@ -11,7 +11,7 @@ export class TokenService {
 
   async generateJwtToken(user) {
     const payload = {
-      user,
+      id: user.id,
     };
     return this.jwtService.sign(payload, {
       secret: this.configService.get('jwt_secret'),
