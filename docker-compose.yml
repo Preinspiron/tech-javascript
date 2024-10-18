@@ -17,4 +17,4 @@ services:
     image: redis:alpine3.14
     container_name: redis-lesson
     ports:
-      - "6379:6379"
+      - "6372:6372"

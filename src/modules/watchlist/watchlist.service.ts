@@ -13,11 +13,11 @@ export class WatchlistService {
 
   async createAsset(
     assetDto: WatchlistDTO,
-    user: any,
+    id: any,
   ): Promise<CreateAssetResponse> {
     try {
       const watchlist = {
-        user: user.id,
+        user: id,
         name: assetDto.name,
         assetId: assetDto.assetId,
       };
