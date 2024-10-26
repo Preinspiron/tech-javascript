@@ -1,17 +1,57 @@
-import { Column, HasMany, Model, Table } from 'sequelize-typescript';
+import {
+  AllowNull,
+  Column,
+  DataType,
+  HasMany,
+  Model,
+  Table,
+  Unique,
+} from 'sequelize-typescript';
 import { Watchlist } from '../../watchlist/models/watchlist.model';
+
 @Table
 export class User extends Model {
-  @Column
-  firstName: string;
+  @AllowNull(false)
+  @Column({
+    type: DataType.STRING,
+    allowNull: false,
+    validate: {
+      len: [3, 50],
+    },
+  })
+  firstname: string;
 
-  @Column
+  @AllowNull(false)
+  @Unique
+  @Column({
+    type: DataType.STRING,
+    allowNull: false,
+    validate: {
+      len: [2, 30],
+    },
+  })
   username: string;
 
-  @Column
+  @AllowNull(false)
+  @Unique
+  @Column({
+    type: DataType.STRING,
+    allowNull: false,
+    validate: {
+      isEmail: true,
+    },
+  })
   email: string;
 
-  @Column
+  @AllowNull(false)
+  @Column({
+    type: DataType.STRING,
+    allowNull: false,
+    validate: {
+      len: [8, 100],
+      is: /^(?=.*[A-Za-z])(?=.*\d)(?=.*[!@#$%^&*(),.?":{}|<>]).{8,}$/,
+    },
+  })
   password: string;
 
   @HasMany(() => Watchlist, {

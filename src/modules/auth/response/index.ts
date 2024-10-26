@@ -4,7 +4,7 @@ import { ApiProperty } from '@nestjs/swagger';
 class UserResponse {
   @ApiProperty()
   @IsString()
-  firstName: string;
+  firstname: string;
 
   @ApiProperty()
   @IsString()
@@ -14,6 +14,7 @@ class UserResponse {
   @IsString()
   email: string;
 }
+
 export class AuthUserResponse {
   @ApiProperty()
   user: UserResponse;

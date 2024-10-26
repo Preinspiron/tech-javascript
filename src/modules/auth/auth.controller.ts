@@ -16,7 +16,11 @@ export class AuthController {
   })
   @Post('register')
   registerUsers(@Body() dto: CreateUserDTO): Promise<AuthUserResponse> {
-    return this.authService.registerUser(dto);
+    try {
+      return this.authService.registerUser(dto);
+    } catch (error) {
+      throw error;
+    }
   }
 
   @ApiTags('API')
@@ -26,6 +30,10 @@ export class AuthController {
   })
   @Post('login')
   loginUser(@Body() dto: LoginUserDTO): Promise<AuthUserResponse> {
-    return this.authService.loginUser(dto);
+    try {
+      return this.authService.loginUser(dto);
+    } catch (error) {
+      throw error;
+    }
   }
 }

@@ -15,29 +15,26 @@ export class AuthService {
   ) {}
 
   async registerUser(dto: CreateUserDTO): Promise<AuthUserResponse> {
-    try {
-      const existUser = await this.userService.findUserByEmail(dto.email);
-      if (existUser) throw new BadRequestException(AppError.USER_EXIST);
-      await this.userService.createUser(dto);
-      const user = await this.userService.publicUser(dto.email);
-      const token = await this.tokenService.generateJwtToken(user);
-      return { user, token };
-    } catch (err) {
-      throw new Error(err);
-    }
+    const existUser = await this.userService.findUserByEmail(dto.email);
+    if (existUser) throw new BadRequestException(AppError.USER_EXIST);
+
+    await this.userService.createUser(dto);
+    const user = await this.userService.publicUser(dto.email);
+    const token = await this.tokenService.generateJwtToken(user);
+
+    return { user, token };
   }
 
   async loginUser(dto: LoginUserDTO): Promise<AuthUserResponse> {
-    try {
-      const existUser = await this.userService.findUserByEmail(dto.email);
-      if (!existUser) throw new BadRequestException(AppError.USER_NOT_EXIST);
-      const validatePassword = bcrypt.compare(dto.password, existUser.password);
-      if (!validatePassword) throw new BadRequestException(AppError.WRONG_DATA);
-      const user = await this.userService.publicUser(dto.email);
-      const token = await this.tokenService.generateJwtToken(user);
-      return { user, token };
-    } catch (err) {
-      throw new Error(err);
-    }
+    const existUser = await this.userService.findUserByEmail(dto.email);
+    if (!existUser) throw new BadRequestException(AppError.USER_NOT_EXIST);
+
+    const validatePassword = bcrypt.compare(dto.password, existUser.password);
+    if (!validatePassword) throw new BadRequestException(AppError.WRONG_DATA);
+
+    const user = await this.userService.publicUser(dto.email);
+    const token = await this.tokenService.generateJwtToken(user);
+
+    return { user, token };
   }
 }

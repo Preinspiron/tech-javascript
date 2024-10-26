@@ -22,7 +22,10 @@ export class UserController {
   })
   @UseGuards(JwtAuthGuard)
   @Patch()
-  updateUser(@Body() dto: UpdateUserDTO, @Req() request: any): Promise<UpdateUserDTO> {
+  updateUser(
+    @Body() dto: UpdateUserDTO,
+    @Req() request: any,
+  ): Promise<UpdateUserDTO> {
     const { id } = request.user;
     return this.userService.updateUser(dto, id);
   }

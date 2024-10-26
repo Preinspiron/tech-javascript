@@ -10,6 +10,7 @@ export class UserService {
   constructor(
     @InjectModel(User) private readonly userRepositories: typeof User,
   ) {}
+
   async hashPassword(password: string): Promise<string> {
     try {
       return bcrypt.hash(password, 10);
@@ -17,6 +18,7 @@ export class UserService {
       throw new Error(err);
     }
   }
+
   async findUserByEmail(email: string): Promise<User> {
     try {
       return this.userRepositories.findOne({ where: { email: email } });
@@ -24,11 +26,12 @@ export class UserService {
       throw new Error(err);
     }
   }
+
   async createUser(dto: CreateUserDTO): Promise<CreateUserDTO> {
     try {
       dto.password = await this.hashPassword(dto.password);
       await this.userRepositories.create({
-        firstName: dto.firstName,
+        firstname: dto.firstname,
         username: dto.username,
         email: dto.email,
         password: dto.password,
@@ -38,6 +41,7 @@ export class UserService {
       throw new Error(err);
     }
   }
+
   async publicUser(email: string): Promise<User> {
     try {
       return this.userRepositories.findOne({
@@ -54,6 +58,7 @@ export class UserService {
       throw new Error(err);
     }
   }
+
   async updateUser(dto: UpdateUserDTO, id: string): Promise<UpdateUserDTO> {
     try {
       await this.userRepositories.update(dto, { where: { id } });
@@ -62,6 +67,7 @@ export class UserService {
       throw new Error(err);
     }
   }
+
   async deleteUser(id: string): Promise<boolean> {
     try {
       await this.userRepositories.destroy({ where: { id } });
