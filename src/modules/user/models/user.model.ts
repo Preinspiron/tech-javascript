@@ -16,7 +16,7 @@ export class User extends Model {
     type: DataType.STRING,
     allowNull: false,
     validate: {
-      len: [3, 50],
+      len: [2, 50],
     },
   })
   firstname: string;
@@ -27,7 +27,7 @@ export class User extends Model {
     type: DataType.STRING,
     allowNull: false,
     validate: {
-      len: [2, 30],
+      len: [2, 50],
     },
   })
   username: string;
