@@ -43,7 +43,7 @@ export class UpdateUserDTO {
   @ApiProperty()
   @IsOptional()
   @IsString()
-  @MinLength(3, { message: 'First name must be at least 3 characters long' })
+  @MinLength(3, { message: 'First name must be at least 2 characters long' })
   @MaxLength(50, { message: 'First name can be at most 50 characters long' })
   firstname: string;
 
@@ -51,7 +51,7 @@ export class UpdateUserDTO {
   @IsOptional()
   @IsString()
   @MinLength(2, { message: 'Username must be at least 2 characters long' })
-  @MaxLength(30, { message: 'Username can be at most 30 characters long' })
+  @MaxLength(50, { message: 'Username can be at most 50 characters long' })
   username: string;
 
   @ApiProperty()
