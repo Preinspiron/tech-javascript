@@ -12,7 +12,6 @@ import { WatchlistDTO } from './dto';
 import { JwtAuthGuard } from '../../guards/jwt-guard';
 import { ApiResponse, ApiTags } from '@nestjs/swagger';
 import { CreateAssetResponse } from './response';
-// import { isBoolean } from 'class-validator';
 
 @Controller('watchlist')
 export class WatchlistController {
@@ -39,7 +38,10 @@ export class WatchlistController {
   })
   @UseGuards(JwtAuthGuard)
   @Delete()
-  deleteAsset(@Query('id') assetId: string, @Req() request: any): Promise<boolean> {
+  deleteAsset(
+    @Query('id') assetId: string,
+    @Req() request: any,
+  ): Promise<boolean> {
     const { id } = request.user;
     return this.watchlistService.deleteAsset(id, assetId);
   }

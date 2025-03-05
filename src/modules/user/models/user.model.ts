@@ -47,10 +47,6 @@ export class User extends Model {
   @Column({
     type: DataType.STRING,
     allowNull: false,
-    validate: {
-      len: [8, 100],
-      is: /^(?=.*[A-Za-z])(?=.*\d)(?=.*[!@#$%^&*(),.?":{}|<>]).{8,}$/,
-    },
   })
   password: string;
 
