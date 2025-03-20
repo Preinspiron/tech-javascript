@@ -3,6 +3,7 @@ import { AppModule } from './modules/app/app.module';
 import { ConfigService } from '@nestjs/config';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { ValidationPipe } from '@nestjs/common';
+import * as cookieParser from 'cookie-parser';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
@@ -13,8 +14,12 @@ async function bootstrap() {
 
   const configService = app.get(ConfigService);
   const port = configService.get<number>('port', 4000);
+  const nodeEnv = configService.get<string>('node_env', 'development');
+
+  console.log(`Running in ${nodeEnv} mode on port ${port}`);
 
   app.useGlobalPipes(new ValidationPipe());
+  app.use(cookieParser());
 
   const config = new DocumentBuilder()
     .setTitle('Lesson api')
@@ -28,4 +33,4 @@ async function bootstrap() {
   await app.listen(port);
 }
 
-bootstrap().then((r) => console.log('Success!', r));
+bootstrap().then(() => console.log('Server started successfully!'));

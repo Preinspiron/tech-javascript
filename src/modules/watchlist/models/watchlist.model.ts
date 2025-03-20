@@ -13,12 +13,12 @@ export class Watchlist extends Model {
   @ForeignKey(() => User)
   @AllowNull(false)
   @Column({
-    type: DataType.INTEGER,
+    type: DataType.UUID,
     allowNull: false,
     onDelete: 'CASCADE',
     onUpdate: 'CASCADE',
   })
-  user: User;
+  user: string;
 
   @AllowNull(false)
   @Column({

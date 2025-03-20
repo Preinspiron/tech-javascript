@@ -20,9 +20,9 @@ export class AuthService {
 
     await this.userService.createUser(dto);
     const user = await this.userService.publicUser(dto.email);
-    const token = await this.tokenService.generateJwtToken(user);
+    const tokens = await this.tokenService.generateJwtTokens(user);
 
-    return { user, token };
+    return { user, ...tokens };
   }
 
   async loginUser(dto: LoginUserDTO): Promise<AuthUserResponse> {
@@ -33,8 +33,20 @@ export class AuthService {
     if (!validatePassword) throw new BadRequestException(AppError.WRONG_DATA);
 
     const user = await this.userService.publicUser(dto.email);
-    const token = await this.tokenService.generateJwtToken(user);
+    const tokens = await this.tokenService.generateJwtTokens(user);
 
-    return { user, token };
+    return { user, ...tokens };
+  }
+
+  async refreshToken(refreshToken: string): Promise<{ accessToken: string }> {
+    const payload = await this.tokenService.validateRefreshToken(refreshToken);
+    const user = await this.userService.publicUser(payload.email);
+
+    const accessToken = await this.tokenService.generateAccessToken(user);
+    return { accessToken };
+  }
+
+  async logout(refreshToken: string): Promise<void> {
+    await this.tokenService.revokeRefreshToken(refreshToken);
   }
 }
