@@ -30,7 +30,7 @@ window.btq = function (
       getCookie('subid') ||
       getCookie('_subid') ||
       '',
-    test_event_code: getUrlParameter('test_event_code') || '',
+    test_event_code: getUrlParameter('testCode') || '',
   };
 
   fetch(serverUrl, {
