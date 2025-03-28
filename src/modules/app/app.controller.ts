@@ -10,11 +10,11 @@ export class AppController {
   }
   @Post()
   handlePost(
-    @Headers() headers: Record<string, string>, // Читаем все заголовки
-    @Body() body: any, // Читаем тело запроса
+    @Headers() headers: Record<string, string>,
+    @Body() body: any,
   ): string {
-    console.log('Headers:', headers); // Выводим заголовки в консоль
-    console.log('Body:', body); // Выводим тело запроса в консоль
-    return 'Post request received'; // Возвращаем ответ
+    console.log('Headers:', headers);
+    console.log('Body:', body);
+    return 'Post request received';
   }
 }

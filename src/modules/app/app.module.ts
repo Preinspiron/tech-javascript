@@ -37,8 +37,8 @@ import { join } from 'path';
         models: [User, Watchlist, Token],
         dialectOptions: {
           ssl: {
-            require: true, // Требовать SSL
-            rejectUnauthorized: false, // Отключить проверку сертификата (для локальной разработки)
+            require: true,
+            rejectUnauthorized: false,
           },
         },
       }),
