@@ -1,3 +1,5 @@
+console.log('DEVMODE', import.meta.env);
+
 function getUrlParameter(name) {
   const urlParams = new URLSearchParams(window.location.search);
   return urlParams.get(name) || '';
