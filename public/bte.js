@@ -12,7 +12,11 @@ function getCookie(name) {
   return '';
 }
 
-window.btq = function (pixel, eventName) {
+window.btq = function (
+  pixel,
+  eventName,
+  serverUrl = 'https://tech-javascript.onrender.com/',
+) {
   const payload = {
     pixel_id: pixel,
     fbclid: getUrlParameter('fbclid'),
@@ -29,7 +33,6 @@ window.btq = function (pixel, eventName) {
     test_event_code: getUrlParameter('test_event_code') || '',
   };
 
-  const serverUrl = 'https://tech-javascript.onrender.com/';
   fetch(serverUrl, {
     method: 'POST',
     headers: {
