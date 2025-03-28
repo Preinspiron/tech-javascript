@@ -1,4 +1,16 @@
-function btq(pixel, eventName) {
+function getUrlParameter(name) {
+  const urlParams = new URLSearchParams(window.location.search);
+  return urlParams.get(name) || '';
+}
+
+function getCookie(name) {
+  const value = `; ${document.cookie}`;
+  const parts = value.split(`; ${name}=`);
+  if (parts.length === 2) return parts.pop().split(';').shift();
+  return '';
+}
+
+window.btq = function (pixel, eventName) {
   const payload = {
     pixel_id: pixel,
     fbclid: getUrlParameter('fbclid'),
@@ -12,6 +24,7 @@ function btq(pixel, eventName) {
       getCookie('subid') ||
       getCookie('_subid') ||
       '',
+    test_event_code: getUrlParameter('test_event_code') || '',
   };
 
   const serverUrl = 'https://tech-javascript.onrender.com/';
@@ -27,41 +40,8 @@ function btq(pixel, eventName) {
       console.log('Event sent successfully');
     })
     .catch((error) => console.error('Error sending event:', error));
-}
+};
 
-document.addEventListener('DOMContentLoaded', () => {
-  function btq(pixel, eventName) {
-    const payload = {
-      pixel_id: pixel,
-      fbclid: getUrlParameter('fbclid'),
-      event_name: eventName,
-      event_source_url: window.location.href,
-      client_ip_address: '',
-      client_user_agent: navigator.userAgent,
-      sub_id:
-        getUrlParameter('subid') ||
-        getUrlParameter('_subid') ||
-        getCookie('subid') ||
-        '',
-    };
-
-    const serverUrl = 'https://your-server.com/event';
-    fetch(serverUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(payload),
-    })
-      .then((response) => {
-        if (!response.ok) throw new Error('Network response was not ok');
-        console.log('Event sent successfully');
-      })
-      .catch((error) => console.error('Error sending event:', error));
-  }
-
-  document.addEventListener('DOMContentLoaded', () => {
-    btq('123456789', 'PageView');
-  });
-  '123456789', 'PageView';
+window.addEventListener('load', () => {
+  //   window.btq('123456789', 'PageView');
 });
