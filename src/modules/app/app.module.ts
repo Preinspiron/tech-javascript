@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { ServeStaticModule } from '@nestjs/serve-static';
 import { SequelizeModule } from '@nestjs/sequelize';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -10,9 +11,13 @@ import { AuthModule } from '../auth/auth.module';
 import { Watchlist } from '../watchlist/models/watchlist.model';
 import { WatchlistModule } from '../watchlist/watchlist.module';
 import { Token } from '../token/models/token.model';
+import { join } from 'path';
 
 @Module({
   imports: [
+    ServeStaticModule.forRoot({
+      rootPath: join(__dirname, '../../../', 'public'),
+    }),
     ConfigModule.forRoot({
       isGlobal: true,
       load: [configurations],
