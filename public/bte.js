@@ -45,6 +45,7 @@ window.btq = function (
       console.log('Event sent successfully');
     })
     .catch((error) => console.error('Error sending event:', error));
+  return 'Event sent successfully';
 };
 
 window.addEventListener('load', () => {
