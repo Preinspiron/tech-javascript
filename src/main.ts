@@ -20,7 +20,11 @@ async function bootstrap() {
 
   app.useGlobalPipes(new ValidationPipe());
   app.use(cookieParser());
-  app.enableCors();
+  app.enableCors({
+    origin: '*',
+    methods: 'GET,POST',
+    allowedHeaders: 'Content-Type',
+  });
 
   const config = new DocumentBuilder()
     .setTitle('Lesson api')
