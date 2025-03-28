@@ -30,6 +30,12 @@ import { Token } from '../token/models/token.model';
         synchronize: true,
         autoLoadModels: true,
         models: [User, Watchlist, Token],
+        dialectOptions: {
+          ssl: {
+            require: true, // Требовать SSL
+            rejectUnauthorized: false, // Отключить проверку сертификата (для локальной разработки)
+          },
+        },
       }),
     }),
     UserModule,
