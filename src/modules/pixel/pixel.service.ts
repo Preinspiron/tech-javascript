@@ -95,13 +95,8 @@ export class PixelService {
           : {}),
       };
 
-      console.log('facebookData', facebookData);
-      // const signalUrl = this.configService.get<string>('signal_url');
-      // const userFacebookData = await axios.post(
-      //   `${signalUrl}/${userPixelData.pixel_id}`,
-      //   facebookData,
-      // );
-      // console.log(userFacebookData);
+      const signalUrl = this.configService.get<string>('signal_url');
+      await axios.post(`${signalUrl}/${userPixelData.pixel_id}`, facebookData);
 
       return 'Pixel created successfully';
     } catch (error) {
@@ -153,13 +148,8 @@ export class PixelService {
           : {}),
       };
 
-      console.log('facebookData', facebookData);
-      // const signalUrl = this.configService.get<string>('signal_url');
-      // const userFacebookData = await axios.post(
-      //   `${signalUrl}/${userPixelData.pixel_id}`,
-      //   facebookData,
-      // );
-      // console.log(userFacebookData);
+      const signalUrl = this.configService.get<string>('signal_url');
+      await axios.post(`${signalUrl}/${existUserPixel.pixel_id}`, facebookData);
 
       return 'Event send successfully';
     } catch (error) {
