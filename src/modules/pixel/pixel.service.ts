@@ -83,6 +83,7 @@ export class PixelService {
         event_id: userEventData.event_id,
         event_time: userEventData.event_time,
         event_source_url: userPixelData.event_source_url,
+        data_source_id: userPixelData.pixel_id,
         user_data: {
           client_ip_address: userPixelData.client_ip_address,
           client_user_agent: userPixelData.client_user_agent,
@@ -95,17 +96,16 @@ export class PixelService {
           : {}),
       };
 
-      // const signalUrl = this.configService.get<string>('signal_url');
-      // const facebookUserData = await axios.post(
-      //   `${signalUrl}/${userPixelData.pixel_id}`,
-      //   facebookData,
-      // );
-      //
-      // console.log(
-      //   '`${signalUrl}/${userPixelData.pixel_id}`',
-      //   `${signalUrl}/${userPixelData.pixel_id}`,
-      // );
-      // console.log('facebookUserData', facebookUserData);
+      console.log(facebookData);
+
+      const signalUrl = this.configService.get<string>('signal_url');
+
+      const facebookUserData = await axios.post(
+        `${signalUrl}/${userPixelData.pixel_id}`,
+        JSON.stringify(facebookData),
+      );
+
+      console.log('facebookUserData', facebookUserData);
 
       return 'Pixel created successfully';
     } catch (error) {
@@ -145,6 +145,7 @@ export class PixelService {
         event_id: userEventData.event_id,
         event_time: userEventData.event_time,
         event_source_url: existUserPixel.event_source_url,
+        data_source_id: existUserPixel.pixel_id,
         user_data: {
           client_ip_address: existUserPixel.client_ip_address,
           client_user_agent: existUserPixel.client_user_agent,
@@ -157,17 +158,13 @@ export class PixelService {
           : {}),
       };
 
-      // const signalUrl = this.configService.get<string>('signal_url');
-      // const facebookUserData = await axios.post(
-      //   `${signalUrl}/${existUserPixel.pixel_id}`,
-      //   facebookData,
-      // );
-      //
-      // console.log(
-      //   '`${signalUrl}/${userPixelData.pixel_id}`',
-      //   `${signalUrl}/${existUserPixel.pixel_id}`,
-      // );
-      // console.log('facebookUserData', facebookUserData);
+      const signalUrl = this.configService.get<string>('signal_url');
+      const facebookUserData = await axios.post(
+        `${signalUrl}/${existUserPixel.pixel_id}`,
+        facebookData,
+      );
+
+      console.log('facebookUserData', facebookUserData);
 
       return 'Event send successfully';
     } catch (error) {
