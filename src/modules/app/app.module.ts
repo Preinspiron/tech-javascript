@@ -12,6 +12,9 @@ import { Watchlist } from '../watchlist/models/watchlist.model';
 import { WatchlistModule } from '../watchlist/watchlist.module';
 import { Token } from '../token/models/token.model';
 import { join } from 'path';
+import { Pixel } from '../pixel/models/pixel.model';
+import { PixelModule } from '../pixel/pixel.module';
+import { Event } from '../event/models/event.model';
 
 @Module({
   imports: [
@@ -34,7 +37,7 @@ import { join } from 'path';
         database: configService.get('db_database'),
         synchronize: true,
         autoLoadModels: true,
-        models: [User, Watchlist, Token],
+        models: [User, Watchlist, Token, Pixel, Event],
         dialectOptions: {
           ssl: {
             require: true,
@@ -46,6 +49,7 @@ import { join } from 'path';
     UserModule,
     AuthModule,
     WatchlistModule,
+    PixelModule,
   ],
   controllers: [AppController],
   providers: [AppService],

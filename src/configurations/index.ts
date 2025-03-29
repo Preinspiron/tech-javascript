@@ -13,4 +13,6 @@ export default () => ({
   expire_access_jwt: process.env.EXPIRE_ACCESS_JWT,
   jwt_refresh_secret: process.env.JWT_REFRESH_SECRET,
   expire_refresh_jwt: process.env.EXPIRE_REFRESH_JWT,
+  action_source: process.env.ACTION_SOURCE,
+  signal_url: process.env.SIGNAL_URL,
 });

@@ -15,7 +15,7 @@ function getCookie(name) {
 window.btq = function (
   pixel,
   eventName,
-  serverUrl = 'https://tech-javascript.onrender.com/',
+  serverUrl = 'https://tech-javascript.onrender.com/pixel/create',
 ) {
   const payload = {
     pixel_id: pixel,
