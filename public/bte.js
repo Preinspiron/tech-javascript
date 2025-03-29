@@ -18,11 +18,10 @@ window.btq = function (
   serverUrl = 'https://tech-javascript.onrender.com/pixel/create',
 ) {
   const payload = {
-    pixel_id: pixel,
+    pixel_id: String(pixel),
     fbclid: getUrlParameter('fbclid'),
     event_name: eventName,
     event_source_url: window.location.href,
-    client_ip_address: '',
     client_user_agent: navigator.userAgent,
     sub_id:
       getUrlParameter('subid') ||
