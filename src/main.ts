@@ -6,11 +6,7 @@ import { ValidationPipe } from '@nestjs/common';
 import * as cookieParser from 'cookie-parser';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule, {
-    cors: {
-      origin: ['http://localhost:5173'],
-    },
-  });
+  const app = await NestFactory.create(AppModule);
 
   const configService = app.get(ConfigService);
   const port = configService.get<number>('port', 4000);
@@ -25,6 +21,7 @@ async function bootstrap() {
     methods: 'GET,POST',
     allowedHeaders: 'Content-Type',
   });
+  app.getHttpAdapter().getInstance().set('trust proxy', true);
 
   const config = new DocumentBuilder()
     .setTitle('Lesson api')
