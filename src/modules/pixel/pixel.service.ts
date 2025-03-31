@@ -79,6 +79,22 @@ export class PixelService {
       const userEventData = await this.eventService.createEvent(eventData);
 
       const facebookData = {
+        click_id: userPixelData.fbc, //!
+        cs_est: true, //!
+        scoped_browser_id: userPixelData.fbp, //!
+        website_context: {
+          isInIFrame: false,
+          location: userPixelData.event_source_url,
+          referrer: '',
+        }, //!
+        event_meta_info: {
+          consent_status: 'FBQ is not blocked',
+          cs_est: true,
+          est_source: null,
+          release_segment: 'stable',
+          script_version: '1.0.37',
+          source_channel: 'ah_pixel',
+        }, //!
         event_name: userEventData.event_name,
         event_id: userEventData.event_id,
         event_time: userEventData.event_time,
