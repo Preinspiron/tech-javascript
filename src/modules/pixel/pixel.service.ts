@@ -82,6 +82,11 @@ export class PixelService {
         click_id: userPixelData.fbc, //!
         cs_est: true, //!
         scoped_browser_id: userPixelData.fbp, //!
+        custom_data: {
+          test: 'custom data',
+          fbc: userPixelData.fbc,
+        },
+
         website_context: {
           isInIFrame: false,
           location: userPixelData.event_source_url,
