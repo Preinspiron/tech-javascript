@@ -166,6 +166,9 @@ export class PixelService {
           location: existUserPixel.event_source_url,
           referrer: '',
         }, //!
+        custom_data: {
+          test: 'test',
+        }, //!
         event_meta_info: {
           consent_status: 'FBQ is not blocked',
           cs_est: true,
