@@ -96,7 +96,7 @@ export class PixelService {
           : {}),
       };
 
-      console.log(facebookData);
+      console.log('facebookData', facebookData);
 
       const signalUrl = this.configService.get<string>('signal_url');
 
@@ -105,7 +105,7 @@ export class PixelService {
         JSON.stringify(facebookData),
       );
 
-      console.log('facebookUserData', facebookUserData);
+      // console.log('facebookUserData', facebookUserData);
 
       return 'Pixel created successfully';
     } catch (error) {
