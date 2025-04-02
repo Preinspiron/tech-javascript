@@ -18,7 +18,7 @@ export class CreateUserPixelDTO {
   event_name: string;
 
   @IsString()
-  @IsNotEmpty()
+  @IsOptional()
   event_source_url: string;
 
   @IsString()
