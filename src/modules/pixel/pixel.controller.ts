@@ -21,6 +21,8 @@ export class PixelController {
     @Query('fbclid') fbclid: string,
     @Query('test_event_code') test_event_code?: string,
   ): Promise<string> {
+    console.log('Pixei.Controller', fbclid);
+
     return await this.pixelService.sendUserEvent(
       event_name,
       sub_id,
