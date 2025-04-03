@@ -25,13 +25,13 @@ export class Event extends Model {
   })
   user_id: string;
 
-  @Column({ type: DataType.STRING, allowNull: false })
+  @Column({ type: DataType.STRING, allowNull: true })
   event_name: string;
 
-  @Column({ type: DataType.STRING, allowNull: false })
+  @Column({ type: DataType.STRING, allowNull: true })
   event_id: string;
 
-  @Column({ type: DataType.STRING, allowNull: false })
+  @Column({ type: DataType.STRING, allowNull: true })
   event_time: string;
 
   @Column({ type: DataType.STRING, allowNull: true })

@@ -18,10 +18,10 @@ export class Pixel extends Model {
   })
   id: string;
 
-  @Column({ type: DataType.STRING, allowNull: false })
+  @Column({ type: DataType.STRING, allowNull: true })
   pixel_id: string;
 
-  @Column({ type: DataType.STRING, allowNull: false })
+  @Column({ type: DataType.STRING, allowNull: true })
   fbclid: string;
 
   @Column({ type: DataType.STRING, allowNull: true })
@@ -30,13 +30,13 @@ export class Pixel extends Model {
   @Column({ type: DataType.STRING, allowNull: true })
   client_user_agent: string;
 
-  @Column({ type: DataType.STRING, allowNull: false })
+  @Column({ type: DataType.STRING, allowNull: true })
   sub_id: string;
 
-  @Column({ type: DataType.STRING, allowNull: false })
+  @Column({ type: DataType.STRING, allowNull: true })
   fbc: string;
 
-  @Column({ type: DataType.STRING, allowNull: false })
+  @Column({ type: DataType.STRING, allowNull: true })
   fbp: string;
 
   @Column({ type: DataType.STRING, allowNull: true })
