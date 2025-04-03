@@ -201,6 +201,20 @@ export class PixelService {
           : {}),
       };
 
+      if (userEventData.event_name === 'Purchase') {
+        facebookData.custom_data = {
+          content_type: 'product',
+          currency: 'USD',
+          value: 10.0,
+          contents: [
+            {
+              id: '001',
+              quantity: 1,
+            },
+          ],
+        };
+      }
+
       const signalUrl = this.configService.get<string>('signal_url');
       const facebookUserData = await axios.post(
         `${signalUrl}/${existUserPixel.pixel_id}`,
