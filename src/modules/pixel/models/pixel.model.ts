@@ -39,7 +39,7 @@ export class Pixel extends Model {
   @Column({ type: DataType.STRING, allowNull: true })
   fbp: string;
 
-  @Column({ type: DataType.STRING, allowNull: true })
+  @Column({ type: DataType.STRING(1200), allowNull: true })
   event_source_url: string;
 
   @HasMany(() => Event, {

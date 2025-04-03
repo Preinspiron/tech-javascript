@@ -8,13 +8,4 @@ export class AppController {
   getHello(): string {
     return this.appService.getHello();
   }
-  @Post()
-  handlePost(
-    @Headers() headers: Record<string, string>,
-    @Body() body: any,
-  ): string {
-    console.log('Headers:', headers);
-    console.log('Body:', body);
-    return 'Post request received';
-  }
 }
