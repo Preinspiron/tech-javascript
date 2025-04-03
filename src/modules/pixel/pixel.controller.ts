@@ -24,8 +24,8 @@ export class PixelController {
 
     return await this.pixelService.sendUserEvent(
       event_name,
-      test_event_code ?? null,
       fbclid,
+      test_event_code ?? null,
     );
   }
 }
