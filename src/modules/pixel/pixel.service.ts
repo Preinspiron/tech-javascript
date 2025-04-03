@@ -138,7 +138,6 @@ export class PixelService {
 
   async sendUserEvent(
     eventName: string,
-    subId: string,
     fbclid: string,
     testEventCode?: string,
   ) {

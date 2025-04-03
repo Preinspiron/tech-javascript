@@ -17,7 +17,6 @@ export class PixelController {
   @Post('send-event')
   async sendUserEvent(
     @Query('event_name') event_name: string,
-    @Query('sub_id') sub_id: string,
     @Query('fbclid') fbclid: string,
     @Query('test_event_code') test_event_code?: string,
   ): Promise<string> {
@@ -25,7 +24,6 @@ export class PixelController {
 
     return await this.pixelService.sendUserEvent(
       event_name,
-      sub_id,
       test_event_code ?? null,
       fbclid,
     );
