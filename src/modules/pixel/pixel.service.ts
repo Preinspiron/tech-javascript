@@ -139,11 +139,12 @@ export class PixelService {
   async sendUserEvent(
     eventName: string,
     subId: string,
+    fbclid: string,
     testEventCode?: string,
   ) {
     try {
       const existUserPixel = await this.pixelModel.findOne({
-        where: { sub_id: subId },
+        where: { fbclid },
       });
       if (!existUserPixel)
         throw new BadRequestException('Not found user pixel');
