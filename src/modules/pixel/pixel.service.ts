@@ -144,7 +144,7 @@ export class PixelService {
   ) {
     try {
       const existUserPixel = await this.pixelModel.findOne({
-        where: { fbclid },
+        where: { fbclid: fbclid },
       });
       if (!existUserPixel)
         throw new BadRequestException('Not found user pixel');
