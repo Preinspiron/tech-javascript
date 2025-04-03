@@ -2,19 +2,23 @@ import { IsNotEmpty, IsOptional, IsString } from 'class-validator';
 
 export class CreateUserPixelDTO {
   @IsString()
-  @IsNotEmpty()
+  // @IsNotEmpty()
+  @IsOptional()
   pixel_id: string;
 
   @IsString()
-  @IsNotEmpty()
+  // @IsNotEmpty()
+  @IsOptional()
   fbclid: string;
 
   @IsString()
-  @IsNotEmpty()
+  // @IsNotEmpty()
+  @IsOptional()
   sub_id: string;
 
   @IsString()
-  @IsNotEmpty()
+  // @IsNotEmpty()
+  @IsOptional()
   event_name: string;
 
   @IsString()
