@@ -21,19 +21,19 @@ export class Pixel extends Model {
   @Column({ type: DataType.STRING, allowNull: true })
   pixel_id: string;
 
-  @Column({ type: DataType.STRING, allowNull: true })
+  @Column({ type: DataType.STRING(500), allowNull: true })
   fbclid: string;
 
   @Column({ type: DataType.STRING, allowNull: true })
   client_ip_address: string;
 
-  @Column({ type: DataType.STRING, allowNull: true })
+  @Column({ type: DataType.STRING(1200), allowNull: true })
   client_user_agent: string;
 
   @Column({ type: DataType.STRING, allowNull: true })
   sub_id: string;
 
-  @Column({ type: DataType.STRING, allowNull: true })
+  @Column({ type: DataType.STRING(500), allowNull: true })
   fbc: string;
 
   @Column({ type: DataType.STRING, allowNull: true })
