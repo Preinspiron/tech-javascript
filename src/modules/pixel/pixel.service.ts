@@ -193,6 +193,7 @@ export class PixelService {
           fbp: existUserPixel.fbp,
         },
         action_source: this.configService.get<string>('action_source'),
+        custom_data: undefined as { [key: string]: any } | undefined,
         ...(userEventData.test_event_code
           ? { test_event_code: userEventData.test_event_code }
           : {}),
