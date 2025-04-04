@@ -142,7 +142,7 @@ export class PixelService {
     testEventCode?: string,
   ) {
     try {
-      console.log('Pixel.servise -> fbclid', fbclid);
+      console.log('Pixel.servise.fbclid', fbclid);
       const existUserPixel = await this.pixelModel.findOne({
         where: { fbclid: fbclid },
       });
