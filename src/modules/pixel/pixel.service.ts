@@ -174,9 +174,6 @@ export class PixelService {
           location: existUserPixel.event_source_url,
           referrer: '',
         }, //!
-        custom_data: {
-          test: 'test',
-        }, //!
         event_meta_info: {
           consent_status: 'FBQ is not blocked',
           cs_est: true,
@@ -203,15 +200,10 @@ export class PixelService {
 
       if (userEventData.event_name === 'Purchase') {
         facebookData.custom_data = {
-          content_type: 'product',
           currency: 'USD',
           value: 10.0,
-          contents: [
-            {
-              id: '001',
-              quantity: 1,
-            },
-          ],
+          content_ids: ['product.id.123'],
+          content_type: 'product',
         };
       }
 
