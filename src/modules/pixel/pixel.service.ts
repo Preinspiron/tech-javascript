@@ -201,6 +201,7 @@ export class PixelService {
 
       if (userEventData.event_name === 'Purchase') {
         facebookData.custom_data = {
+          ...facebookData.custom_data,
           currency: 'USD',
           value: 10.0,
           content_ids: ['product.id.123'],
