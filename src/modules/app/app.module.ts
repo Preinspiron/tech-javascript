@@ -23,6 +23,7 @@ import { Event } from '../event/models/event.model';
     }),
     ConfigModule.forRoot({
       isGlobal: true,
+      envFilePath: process.env.NODE_ENV === "production" ? '.env' : ".local.env",
       load: [configurations],
     }),
     SequelizeModule.forRootAsync({
@@ -38,12 +39,7 @@ import { Event } from '../event/models/event.model';
         synchronize: true,
         autoLoadModels: true,
         models: [User, Watchlist, Token, Pixel, Event],
-        dialectOptions: {
-          ssl: {
-            require: true,
-            rejectUnauthorized: false,
-          },
-        },
+        
       }),
     }),
     PixelModule,
