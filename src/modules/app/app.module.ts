@@ -39,6 +39,12 @@ import { Event } from '../event/models/event.model';
         synchronize: true,
         autoLoadModels: true,
         models: [User, Watchlist, Token, Pixel, Event],
+        dialectOptions: {
+          ssl: {
+          require: true,
+          rejectUnauthorized: false,
+        },
+      },
         
       }),
     }),
