@@ -13,6 +13,9 @@ import { CreateUserPixelDTO } from './dto';
 import axios from 'axios';
 import axiosRetry from 'axios-retry';
 
+
+
+
 axiosRetry(axios, {
   retries: 5,
   retryDelay: (retryCount) => retryCount * 1000,
@@ -27,6 +30,8 @@ export class PixelService {
     private readonly configService: ConfigService,
     @InjectModel(Pixel) private readonly pixelModel: typeof Pixel,
   ) {}
+
+ signalUrl = this.configService.get<string>('signal_url');
 
   private generateTimestamp(): number {
     return Date.now();
@@ -78,28 +83,7 @@ export class PixelService {
 
       const userEventData = await this.eventService.createEvent(eventData);
 
-      const facebookData = {
-        click_id: userPixelData.fbc, //!
-        cs_est: true, //!
-        scoped_browser_id: userPixelData.fbp, //!
-        custom_data: {
-          test: 'custom data',
-          fbc: userPixelData.fbc,
-        },
-
-        website_context: {
-          isInIFrame: false,
-          location: userPixelData.event_source_url,
-          referrer: '',
-        }, //!
-        event_meta_info: {
-          consent_status: 'FBQ is not blocked',
-          cs_est: true,
-          est_source: null,
-          release_segment: 'stable',
-          script_version: '1.0.37',
-          source_channel: 'ah_pixel',
-        }, //!
+      const facebookData = { data:[{
         event_name: userEventData.event_name,
         event_id: userEventData.event_id,
         event_time: userEventData.event_time,
@@ -112,21 +96,18 @@ export class PixelService {
           fbp: userPixelData.fbp,
         },
         action_source: this.configService.get<string>('action_source'),
-        ...(userEventData.test_event_code
+      }],
+         ...(userEventData.test_event_code
           ? { test_event_code: userEventData.test_event_code }
-          : {}),
-      };
-
-      console.log('facebookData', facebookData);
+          : {})
+        }
 
       const signalUrl = this.configService.get<string>('signal_url');
 
       const facebookUserData = await axios.post(
-        `${signalUrl}/${userPixelData.pixel_id}`,
-        JSON.stringify(facebookData),
+        signalUrl+userPixelData.pixel_id+'/events',
+        facebookData,
       );
-
-      // console.log('facebookUserData', facebookUserData);
 
       return 'Pixel created successfully';
     } catch (error) {
@@ -142,11 +123,9 @@ export class PixelService {
     testEventCode?: string,
   ) {
     try {
-      console.log('Pixel.servise.fbclid', fbclid);
       const existUserPixel = await this.pixelModel.findOne({
         where: { fbclid: fbclid },
       });
-      console.log('Pixel.Servise -> existUserPixel', existUserPixel);
 
       if (!existUserPixel)
         throw new BadRequestException('Not found user pixel');
@@ -164,24 +143,8 @@ export class PixelService {
 
       const userEventData = await this.eventService.createEvent(eventData);
 
-      const facebookData = {
+     const facebookData = { data:[{
         event_name: userEventData.event_name,
-        click_id: existUserPixel.fbc, //!
-        cs_est: true, //!
-        scoped_browser_id: existUserPixel.fbp, //!
-        website_context: {
-          isInIFrame: false,
-          location: existUserPixel.event_source_url,
-          referrer: '',
-        }, //!
-        event_meta_info: {
-          consent_status: 'FBQ is not blocked',
-          cs_est: true,
-          est_source: null,
-          release_segment: 'stable',
-          script_version: '1.0.37',
-          source_channel: 'ah_pixel',
-        }, //!
         event_id: userEventData.event_id,
         event_time: userEventData.event_time,
         event_source_url: existUserPixel.event_source_url,
@@ -194,14 +157,16 @@ export class PixelService {
         },
         action_source: this.configService.get<string>('action_source'),
         custom_data: undefined as { [key: string]: any } | undefined,
-        ...(userEventData.test_event_code
-          ? { test_event_code: userEventData.test_event_code }
-          : {}),
-      };
+     
+      }],
+      ...(userEventData.test_event_code
+      ? { test_event_code: userEventData.test_event_code }
+      : {}),
+      }
+  
 
       if (userEventData.event_name === 'Purchase') {
-        facebookData.custom_data = {
-          ...facebookData.custom_data,
+        facebookData.data[0].custom_data = {
           currency: 'USD',
           value: 10.0,
           content_ids: ['product.id.123'],
@@ -209,9 +174,12 @@ export class PixelService {
         };
       }
 
-      const signalUrl = this.configService.get<string>('signal_url');
+      
+       
+    
+      
       const facebookUserData = await axios.post(
-        `${signalUrl}/${existUserPixel.pixel_id}`,
+        this.signalUrl+existUserPixel.pixel_id+'/events',
         facebookData,
       );
 
@@ -220,7 +188,7 @@ export class PixelService {
       return 'Event send successfully';
     } catch (error) {
       throw new InternalServerErrorException(
-        `Failed to process send event: ${error.message}`,
+        `Failed to process send event: ${error}`,
       );
     }
   }
