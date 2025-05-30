@@ -12,6 +12,7 @@ import { Event } from '../event/models/event.model';
 import { CreateUserPixelDTO } from './dto';
 import axios from 'axios';
 import axiosRetry from 'axios-retry';
+import {generateRandomString} from '@helpers/fb'
 
 
 
@@ -31,22 +32,13 @@ export class PixelService {
     @InjectModel(Pixel) private readonly pixelModel: typeof Pixel,
   ) {}
 
- signalUrl = this.configService.get<string>('signal_url');
+    signalUrl = this.configService.get<string>('signal_url');
 
   private generateTimestamp(): number {
     return Date.now();
   }
 
-  private generateRandomString(length: number): string {
-    const characters = '0123456789';
-    let result = '';
-    for (let i = 0; i < length; i++) {
-      result += characters.charAt(
-        Math.floor(Math.random() * characters.length),
-      );
-    }
-    return result;
-  }
+  private generateRandomString = generateRandomString
 
   private generateFbc(timestamp: number, fbclid: string): string {
     return `fb.1.${timestamp}.${fbclid}`;
@@ -163,16 +155,51 @@ export class PixelService {
       ? { test_event_code: userEventData.test_event_code }
       : {}),
       }
+
+      if (userEventData.event_name === 'PageView') {
+       facebookData.data[0].custom_data = {
+         currency: 'USD',
+         value: 0.01,
+         content_ids: ['product.id.123'],
+         content_type: 'product',
+       };
+     }
   
+      if (userEventData.event_name === 'Lead') {
+       facebookData.data[0].custom_data = {
+         currency: 'USD',
+         value: 0.04,
+         content_ids: ['product.id.123'],
+         content_type: 'product',
+       };
+     }
+      if (userEventData.event_name === 'ViewContent') {
+       facebookData.data[0].custom_data = {
+         currency: 'USD',
+         value: 0.1,
+         content_ids: ['product.id.123'],
+         content_type: 'product',
+       };
+     }
+
+     if (userEventData.event_name === 'CompleteRegistration') {
+       facebookData.data[0].custom_data = {
+         currency: 'USD',
+         value: 2,
+         content_ids: ['product.id.123'],
+         content_type: 'product',
+       };
+     }
 
       if (userEventData.event_name === 'Purchase') {
         facebookData.data[0].custom_data = {
           currency: 'USD',
-          value: 10.0,
+          value: 20.0,
           content_ids: ['product.id.123'],
           content_type: 'product',
         };
       }
+
 
       
        
