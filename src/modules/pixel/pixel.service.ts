@@ -180,6 +180,10 @@ export class PixelService {
          content_ids: ['product.id.123'],
          content_type: 'product',
        };
+       
+       facebookData.data[0].event_id = userEventData.event_id + 1
+       
+
      }
 
      if (userEventData.event_name === 'CompleteRegistration') {
