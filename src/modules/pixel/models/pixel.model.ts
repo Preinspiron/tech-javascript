@@ -42,6 +42,9 @@ export class Pixel extends Model {
   @Column({ type: DataType.STRING(1200), allowNull: true })
   event_source_url: string;
 
+  @Column({ type: DataType.STRING, allowNull: true })
+  type_source: string;
+
   @HasMany(() => Event, {
     onDelete: 'CASCADE',
     onUpdate: 'CASCADE',

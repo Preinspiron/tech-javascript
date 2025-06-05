@@ -9,26 +9,26 @@ module.exports = {
      * Example:
      * await queryInterface.createTable('users', { id: Sequelize.INTEGER });
      */
-    await queryInterface.changeColumn('Users', 'password', {
+    await queryInterface.addColumn('Pixels', 'type_source', {
       type: Sequelize.STRING,
-      allowNull: false,
+      allowNull: true,
+    });
+
+    await queryInterface.addColumn('Events', 'type_source', {
+      type: Sequelize.STRING,
+      allowNull: true,
     });
   },
 
-  async down(queryInterface, Sequelize) {
+  async down(queryInterface) {
     /**
      * Add reverting commands here.
      *
      * Example:
      * await queryInterface.dropTable('users');
      */
-    await queryInterface.changeColumn('Users', 'password', {
-      type: Sequelize.STRING,
-      allowNull: false,
-      validate: {
-        len: [8, 100],
-        is: /^(?=.*[A-Za-z])(?=.*\d)(?=.*[!@#$%^&*(),.?":{}|<>]).{8,}$/,
-      },
-    });
+    await queryInterface.removeColumn('Events', 'type_source');
+
+    await queryInterface.removeColumn('Pixels', 'type_source');
   },
 };

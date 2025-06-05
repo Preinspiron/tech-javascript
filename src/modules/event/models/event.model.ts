@@ -36,4 +36,7 @@ export class Event extends Model {
 
   @Column({ type: DataType.STRING, allowNull: true })
   test_event_code: string;
+
+  @Column({ type: DataType.STRING, allowNull: true })
+  type_source: string;
 }
