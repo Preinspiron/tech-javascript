@@ -41,10 +41,13 @@ import { Event } from '../event/models/event.model';
         autoLoadModels: true,
         models: [User, Watchlist, Token, Pixel, Event],
         dialectOptions: {
-          ssl: {
-            require: true,
-            rejectUnauthorized: false,
-          },
+          ssl:
+            process.env.NODE_ENV === 'production'
+              ? {
+                  require: true,
+                  rejectUnauthorized: false,
+                }
+              : undefined,
         },
       }),
     }),
