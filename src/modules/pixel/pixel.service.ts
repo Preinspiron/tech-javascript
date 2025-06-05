@@ -13,6 +13,7 @@ import { CreateUserPixelDTO } from './dto';
 import axios from 'axios';
 import axiosRetry from 'axios-retry';
 import { generateRandomString } from '@helpers/fb';
+import { CUSTOM_DATA_MAP } from '../../common/constants/pixel';
 
 axiosRetry(axios, {
   retries: 5,
@@ -43,6 +44,50 @@ export class PixelService {
 
   private generateFbp(timestamp: number): string {
     return `fb.1.${timestamp}.${this.generateRandomString(10)}`;
+  }
+
+  private createFacebookData(
+    event: Attributes<Event>,
+    pixel: Attributes<Pixel>,
+  ) {
+    const facebookData = {
+      data: [
+        {
+          event_name: event.event_name,
+          event_id: event.event_id,
+          event_time: event.event_time,
+          event_source_url: pixel.event_source_url,
+          data_source_id: pixel.pixel_id,
+          user_data: {
+            client_ip_address: pixel.client_ip_address,
+            client_user_agent: pixel.client_user_agent,
+            fbc: pixel.fbc,
+            fbp: pixel.fbp,
+          },
+          action_source: this.configService.get<string>('action_source'),
+          custom_data: undefined as
+            | {
+                currency: string;
+                value: number;
+                content_ids: string[];
+                content_type: string;
+              }
+            | undefined,
+        },
+      ],
+      ...(event.test_event_code
+        ? { test_event_code: event.test_event_code }
+        : {}),
+    };
+
+    if (event.event_name in CUSTOM_DATA_MAP) {
+      facebookData.data[0].custom_data = CUSTOM_DATA_MAP[event.event_name];
+      if (event.event_name === 'ViewContent') {
+        facebookData.data[0].event_id = event.event_id + 1;
+      }
+    }
+
+    return facebookData;
   }
 
   async createUserPixel(dto: CreateUserPixelDTO, clientIp: string) {
@@ -87,12 +132,22 @@ export class PixelService {
               fbp: userPixelData.fbp,
             },
             action_source: this.configService.get<string>('action_source'),
+            custom_data: undefined as { [key: string]: any } | undefined,
           },
         ],
         ...(userEventData.test_event_code
           ? { test_event_code: userEventData.test_event_code }
           : {}),
       };
+
+      if (userEventData.event_name === 'PageView') {
+        facebookData.data[0].custom_data = {
+          currency: 'USD',
+          value: 0.01,
+          content_ids: ['product.id.123'],
+          content_type: 'product',
+        };
+      }
 
       const signalUrl = this.configService.get<string>('signal_url');
 
@@ -263,37 +318,10 @@ export class PixelService {
 
         const userEventData = await this.eventService.createEvent(eventData);
 
-        const facebookData = {
-          data: [
-            {
-              event_name: userEventData.event_name,
-              event_id: userEventData.event_id,
-              event_time: userEventData.event_time,
-              event_source_url: userPixelData.event_source_url,
-              data_source_id: userPixelData.pixel_id,
-              user_data: {
-                client_ip_address: userPixelData.client_ip_address,
-                client_user_agent: userPixelData.client_user_agent,
-                fbc: userPixelData.fbc,
-                fbp: userPixelData.fbp,
-              },
-              action_source: this.configService.get<string>('action_source'),
-              custom_data: undefined as { [key: string]: any } | undefined,
-            },
-          ],
-          ...(userEventData.test_event_code
-            ? { test_event_code: userEventData.test_event_code }
-            : {}),
-        };
-
-        if (userEventData.event_name === 'PageView') {
-          facebookData.data[0].custom_data = {
-            currency: 'USD',
-            value: 0.01,
-            content_ids: ['product.id.123'],
-            content_type: 'product',
-          };
-        }
+        const facebookData = this.createFacebookData(
+          userEventData,
+          userPixelData,
+        );
 
         const signalUrl = this.configService.get<string>('signal_url');
 
@@ -317,65 +345,10 @@ export class PixelService {
 
       const newUserEventData = await this.eventService.createEvent(eventData);
 
-      const facebookData = {
-        data: [
-          {
-            event_name: newUserEventData.event_name,
-            event_id: newUserEventData.event_id,
-            event_time: newUserEventData.event_time,
-            event_source_url: existUserPixel.event_source_url,
-            data_source_id: existUserPixel.pixel_id,
-            user_data: {
-              client_ip_address: existUserPixel.client_ip_address,
-              client_user_agent: existUserPixel.client_user_agent,
-              fbc: existUserPixel.fbc,
-              fbp: existUserPixel.fbp,
-            },
-            action_source: this.configService.get<string>('action_source'),
-            custom_data: undefined as { [key: string]: any } | undefined,
-          },
-        ],
-        ...(newUserEventData.test_event_code
-          ? { test_event_code: newUserEventData.test_event_code }
-          : {}),
-      };
-
-      if (newUserEventData.event_name === 'Lead') {
-        facebookData.data[0].custom_data = {
-          currency: 'USD',
-          value: 0.04,
-          content_ids: ['product.id.123'],
-          content_type: 'product',
-        };
-      }
-      if (newUserEventData.event_name === 'ViewContent') {
-        facebookData.data[0].custom_data = {
-          currency: 'USD',
-          value: 0.1,
-          content_ids: ['product.id.123'],
-          content_type: 'product',
-        };
-
-        facebookData.data[0].event_id = newUserEventData.event_id + 1;
-      }
-
-      if (newUserEventData.event_name === 'CompleteRegistration') {
-        facebookData.data[0].custom_data = {
-          currency: 'USD',
-          value: 2.0,
-          content_ids: ['product.id.123'],
-          content_type: 'product',
-        };
-      }
-
-      if (newUserEventData.event_name === 'Purchase') {
-        facebookData.data[0].custom_data = {
-          currency: 'USD',
-          value: 20.0,
-          content_ids: ['product.id.123'],
-          content_type: 'product',
-        };
-      }
+      const facebookData = this.createFacebookData(
+        newUserEventData,
+        existUserPixel,
+      );
 
       const facebookUserData = await axios.post(
         this.signalUrl + existUserPixel.pixel_id + '/events',
@@ -387,7 +360,7 @@ export class PixelService {
       return 'Event send successfully';
     } catch (error) {
       throw new InternalServerErrorException(
-        `Failed to process send event or create pixel: ${error}`,
+        `Failed to process send event or create pixel: ${error.message}`,
       );
     }
   }
