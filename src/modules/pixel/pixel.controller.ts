@@ -32,25 +32,27 @@ export class PixelController {
   @Post('send-event-test')
   async sendUserEventTest(
     @Ip() clientIp: string,
-    @Query('event_name') event_name: string,
+    @Query('event_name') eventName: string,
     @Query('fbclid') fbclid: string,
-    @Query('event_name') pixel_id?: string,
-    @Query('event_name') sub_id?: string,
-    @Query('event_name') event_source_url?: string,
-    @Query('test_event_code') test_event_code?: string,
-    @Query('event_name') client_user_agent?: string,
+    @Query('type_source') typeSource: string,
+    @Query('event_name') pixelId?: string,
+    @Query('event_name') subId?: string,
+    @Query('event_name') eventSourceUrl?: string,
+    @Query('test_event_code') testEventCode?: string,
+    @Query('event_name') clientUserAgent?: string,
   ): Promise<string> {
     console.log('Pixel.Controller.fbclid', fbclid);
 
     return await this.pixelService.sendUserEventTest(
       clientIp,
-      event_name,
+      eventName,
       fbclid,
-      pixel_id ?? null,
-      sub_id ?? null,
-      event_source_url ?? null,
-      test_event_code ?? null,
-      client_user_agent ?? null,
+      typeSource,
+      pixelId ?? null,
+      subId ?? null,
+      eventSourceUrl ?? null,
+      testEventCode ?? null,
+      clientUserAgent ?? null,
     );
   }
 }

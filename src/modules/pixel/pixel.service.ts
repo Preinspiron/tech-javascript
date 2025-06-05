@@ -221,13 +221,14 @@ export class PixelService {
 
   async sendUserEventTest(
     clientIp: string,
-    event_name: string,
+    eventName: string,
     fbclid: string,
-    pixel_id?: string,
-    sub_id?: string,
-    event_source_url?: string,
-    test_event_code?: string,
-    client_user_agent?: string,
+    typeSource: string,
+    pixelId?: string,
+    subId?: string,
+    eventSourceUrl?: string,
+    testEventCode?: string,
+    clientUserAgent?: string,
   ) {
     try {
       const existUserPixel = await this.pixelModel.findOne({
@@ -238,24 +239,26 @@ export class PixelService {
 
       if (!existUserPixel) {
         const pixelData = {
-          pixel_id: pixel_id,
+          pixel_id: pixelId,
           fbclid: fbclid,
           client_ip_address: clientIp || null,
-          client_user_agent: client_user_agent || null,
-          sub_id: sub_id,
+          client_user_agent: clientUserAgent || null,
+          sub_id: subId,
           fbc: this.generateFbc(timestamp, fbclid),
           fbp: this.generateFbp(timestamp),
-          event_source_url: event_source_url,
+          event_source_url: eventSourceUrl,
+          type_source: typeSource,
         };
 
         const userPixelData = await this.pixelModel.create(pixelData);
 
         const eventData: Omit<Attributes<Event>, 'id'> = {
           user_id: userPixelData.id,
-          event_name: event_name,
+          event_name: eventName,
           event_id: `event.id.${Math.floor(timestamp / 1000)}`,
           event_time: Math.floor(timestamp / 1000).toString(),
-          test_event_code: test_event_code || null,
+          test_event_code: testEventCode || null,
+          type_source: typeSource,
         };
 
         const userEventData = await this.eventService.createEvent(eventData);
@@ -304,11 +307,12 @@ export class PixelService {
 
       const eventData: Omit<Attributes<Event>, 'id'> = {
         user_id: existUserPixel.id,
-        event_name: event_name,
+        event_name: eventName,
         event_id: `event.id.${Math.floor(timestamp / 1000)}`,
         event_time: Math.floor(timestamp / 1000).toString(),
         event_source_url: existUserPixel.event_source_url,
-        test_event_code: test_event_code || null,
+        test_event_code: testEventCode || null,
+        type_source: typeSource,
       };
 
       const newUserEventData = await this.eventService.createEvent(eventData);
