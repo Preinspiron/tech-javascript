@@ -1,6 +1,5 @@
-import { config } from 'dotenv';
-
-config({
+const path = require('path');
+require('dotenv').config({
   path: process.env.NODE_ENV === 'development' ? '.local.env' : '.env',
 });
 

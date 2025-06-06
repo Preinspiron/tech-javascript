@@ -90,6 +90,23 @@ export class PixelService {
     return facebookData;
   }
 
+  private createEventData(
+    pixel: Attributes<Pixel>,
+    eventName: string,
+    timestamp: number,
+    testEventCode: string | undefined,
+  ): Omit<Attributes<Event>, 'id'> {
+    return {
+      user_id: pixel.user_id,
+      event_name: eventName,
+      event_id: `event.id.${Math.floor(timestamp / 1000)}`,
+      event_time: Math.floor(timestamp / 1000).toString(),
+      event_source_url: pixel.event_source_url || null,
+      test_event_code: testEventCode || null,
+      type_source: pixel.type_source,
+    };
+  }
+
   async createUserPixel(dto: CreateUserPixelDTO, clientIp: string) {
     try {
       const timestamp = this.generateTimestamp();
@@ -103,6 +120,7 @@ export class PixelService {
         fbc: this.generateFbc(timestamp, dto.fbclid),
         fbp: this.generateFbp(timestamp),
         event_source_url: dto.event_source_url,
+        type_source: dto.type_source || null,
       };
 
       const userPixelData = await this.pixelModel.create(pixelData);
@@ -113,6 +131,7 @@ export class PixelService {
         event_id: `event.id.${Math.floor(timestamp / 1000)}`,
         event_time: Math.floor(timestamp / 1000).toString(),
         test_event_code: dto.test_event_code || null,
+        type_source: userPixelData.type_source || null,
       };
 
       const userEventData = await this.eventService.createEvent(eventData);
@@ -186,6 +205,7 @@ export class PixelService {
         event_time: Math.floor(timestamp / 1000).toString(),
         event_source_url: existUserPixel.event_source_url,
         test_event_code: testEventCode || null,
+        type_source: existUserPixel.type_source || null,
       };
 
       const userEventData = await this.eventService.createEvent(eventData);
@@ -307,14 +327,12 @@ export class PixelService {
 
         const userPixelData = await this.pixelModel.create(pixelData);
 
-        const eventData: Omit<Attributes<Event>, 'id'> = {
-          user_id: userPixelData.id,
-          event_name: eventName,
-          event_id: `event.id.${Math.floor(timestamp / 1000)}`,
-          event_time: Math.floor(timestamp / 1000).toString(),
-          test_event_code: testEventCode || null,
-          type_source: typeSource,
-        };
+        const eventData = this.createEventData(
+          userPixelData,
+          eventName,
+          timestamp,
+          testEventCode,
+        );
 
         const userEventData = await this.eventService.createEvent(eventData);
 
@@ -323,25 +341,20 @@ export class PixelService {
           userPixelData,
         );
 
-        const signalUrl = this.configService.get<string>('signal_url');
-
         await axios.post(
-          signalUrl + userPixelData.pixel_id + '/events',
+          this.signalUrl + userPixelData.pixel_id + '/events',
           facebookData,
         );
 
         return 'Pixel created successfully';
       }
 
-      const eventData: Omit<Attributes<Event>, 'id'> = {
-        user_id: existUserPixel.id,
-        event_name: eventName,
-        event_id: `event.id.${Math.floor(timestamp / 1000)}`,
-        event_time: Math.floor(timestamp / 1000).toString(),
-        event_source_url: existUserPixel.event_source_url,
-        test_event_code: testEventCode || null,
-        type_source: typeSource,
-      };
+      const eventData = this.createEventData(
+        existUserPixel,
+        eventName,
+        timestamp,
+        testEventCode,
+      );
 
       const newUserEventData = await this.eventService.createEvent(eventData);
 

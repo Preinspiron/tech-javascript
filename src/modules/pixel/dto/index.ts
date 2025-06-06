@@ -32,4 +32,8 @@ export class CreateUserPixelDTO {
   @IsString()
   @IsOptional()
   test_event_code?: string;
+
+  @IsString()
+  @IsOptional()
+  type_source?: string;
 }
