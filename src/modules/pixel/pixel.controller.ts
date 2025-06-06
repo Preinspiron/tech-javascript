@@ -35,11 +35,11 @@ export class PixelController {
     @Query('event_name') eventName: string,
     @Query('fbclid') fbclid: string,
     @Query('type_source') typeSource: string,
-    @Query('event_name') pixelId?: string,
-    @Query('event_name') subId?: string,
-    @Query('event_name') eventSourceUrl?: string,
+    @Query('pixel_id') pixelId?: string,
+    @Query('sub_id') subId?: string,
+    @Query('event_source_url') eventSourceUrl?: string,
     @Query('test_event_code') testEventCode?: string,
-    @Query('event_name') clientUserAgent?: string,
+    @Query('client_user_agent') clientUserAgent?: string,
   ): Promise<string> {
     console.log('Pixel.Controller.fbclid', fbclid);
 

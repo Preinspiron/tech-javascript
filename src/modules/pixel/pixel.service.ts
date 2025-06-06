@@ -97,7 +97,7 @@ export class PixelService {
     testEventCode: string | undefined,
   ): Omit<Attributes<Event>, 'id'> {
     return {
-      user_id: pixel.user_id,
+      user_id: pixel.id,
       event_name: eventName,
       event_id: `event.id.${Math.floor(timestamp / 1000)}`,
       event_time: Math.floor(timestamp / 1000).toString(),
