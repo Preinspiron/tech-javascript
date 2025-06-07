@@ -36,4 +36,8 @@ export class CreateUserPixelDTO {
   @IsString()
   @IsOptional()
   type_source?: string;
+
+  @IsString()
+  @IsOptional()
+  referrer?: string;
 }

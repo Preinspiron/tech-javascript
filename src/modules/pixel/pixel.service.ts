@@ -13,7 +13,10 @@ import { CreateUserPixelDTO } from './dto';
 import axios from 'axios';
 import axiosRetry from 'axios-retry';
 import { generateRandomString } from '@helpers/fb';
-import { CUSTOM_DATA_MAP } from '../../common/constants/pixel';
+import {
+  CUSTOM_FB_DATA_MAP,
+  TT_EVENT_CONVERSION,
+} from '../../common/constants/pixel';
 
 axiosRetry(axios, {
   retries: 5,
@@ -30,7 +33,9 @@ export class PixelService {
     @InjectModel(Pixel) private readonly pixelModel: typeof Pixel,
   ) {}
 
-  signalUrl = this.configService.get<string>('signal_url');
+  private signalUrl = this.configService.get<string>('signal_url');
+  private ttUrl: string = this.configService.get<string>('tt_url');
+  private ttToken: string = this.configService.get<string>('tt_token');
 
   private generateTimestamp(): number {
     return Date.now();
@@ -44,6 +49,16 @@ export class PixelService {
 
   private generateFbp(timestamp: number): string {
     return `fb.1.${timestamp}.${this.generateRandomString(10)}`;
+  }
+
+  private generateTTEventID(timestamp: number): string {
+    return `event_${Math.random().toString(36).substring(2, 9)}_${Math.floor(
+      timestamp / 1000,
+    )}`;
+  }
+
+  private generateFBEventID(timestamp: number): string {
+    return `event.id.${Math.floor(timestamp / 1000)}`;
   }
 
   private createFacebookData(
@@ -80,14 +95,48 @@ export class PixelService {
         : {}),
     };
 
-    if (event.event_name in CUSTOM_DATA_MAP) {
-      facebookData.data[0].custom_data = CUSTOM_DATA_MAP[event.event_name];
+    if (event.event_name in CUSTOM_FB_DATA_MAP) {
+      facebookData.data[0].custom_data = CUSTOM_FB_DATA_MAP[event.event_name];
       if (event.event_name === 'ViewContent') {
         facebookData.data[0].event_id = event.event_id + 1;
       }
     }
 
     return facebookData;
+  }
+
+  private createTTData(
+    event: Attributes<Event>,
+    pixel: Attributes<Pixel>,
+    timestamp: number,
+  ) {
+    return {
+      event_source: 'web',
+      event_source_id: pixel.pixel_id,
+      data: [
+        {
+          event: event.event_name,
+          event_id: event.event_id,
+          event_time: Math.floor(timestamp / 1000),
+          user: {
+            external_id: `user_${pixel.sub_id}`,
+            ttclid: pixel.fbclid,
+            ip: pixel.client_ip_address,
+            user_agent: pixel.client_user_agent,
+          },
+          ...(TT_EVENT_CONVERSION[event.event_name]
+            ? { properties: TT_EVENT_CONVERSION[event.event_name] }
+            : {}),
+          page: {
+            url: pixel.event_source_url,
+            referrer: pixel.referrer,
+          },
+        },
+      ],
+      ...(event.test_event_code
+        ? { test_event_code: event.test_event_code }
+        : {}),
+    };
   }
 
   private createEventData(
@@ -99,7 +148,10 @@ export class PixelService {
     return {
       user_id: pixel.id,
       event_name: eventName,
-      event_id: `event.id.${Math.floor(timestamp / 1000)}`,
+      event_id:
+        pixel.type_source === 'FB'
+          ? this.generateFBEventID(timestamp)
+          : this.generateTTEventID(timestamp),
       event_time: Math.floor(timestamp / 1000).toString(),
       event_source_url: pixel.event_source_url || null,
       test_event_code: testEventCode || null,
@@ -121,6 +173,7 @@ export class PixelService {
         fbp: this.generateFbp(timestamp),
         event_source_url: dto.event_source_url,
         type_source: dto.type_source || null,
+        referrer: dto.referrer || null,
       };
 
       const userPixelData = await this.pixelModel.create(pixelData);
@@ -294,7 +347,7 @@ export class PixelService {
     }
   }
 
-  async sendUserEventTest(
+  async createFBUserEvent(
     clientIp: string,
     eventName: string,
     fbclid: string,
@@ -304,6 +357,7 @@ export class PixelService {
     eventSourceUrl?: string,
     testEventCode?: string,
     clientUserAgent?: string,
+    referrer?: string,
   ) {
     try {
       const existUserPixel = await this.pixelModel.findOne({
@@ -323,6 +377,7 @@ export class PixelService {
           fbp: this.generateFbp(timestamp),
           event_source_url: eventSourceUrl,
           type_source: typeSource,
+          referrer: referrer || null,
         };
 
         const userPixelData = await this.pixelModel.create(pixelData);
@@ -363,12 +418,98 @@ export class PixelService {
         existUserPixel,
       );
 
-      const facebookUserData = await axios.post(
+      await axios.post(
         this.signalUrl + existUserPixel.pixel_id + '/events',
         facebookData,
       );
 
-      console.log('facebookUserData', facebookUserData);
+      return 'Event send successfully';
+    } catch (error) {
+      throw new InternalServerErrorException(
+        `Failed to process send event or create pixel: ${error.message}`,
+      );
+    }
+  }
+
+  async createTTUserEvent(
+    clientIp: string,
+    eventName: string,
+    fbclid: string,
+    typeSource: string,
+    pixelId?: string,
+    subId?: string,
+    eventSourceUrl?: string,
+    testEventCode?: string,
+    clientUserAgent?: string,
+    referrer?: string,
+  ) {
+    try {
+      const existUserPixel = await this.pixelModel.findOne({
+        where: { fbclid: fbclid },
+      });
+
+      const timestamp = this.generateTimestamp();
+
+      if (!existUserPixel) {
+        const pixelData = {
+          pixel_id: pixelId,
+          fbclid: fbclid,
+          client_ip_address: clientIp || null,
+          client_user_agent: clientUserAgent || null,
+          sub_id: subId,
+          event_source_url: eventSourceUrl,
+          type_source: typeSource,
+          referrer: referrer || null,
+        };
+
+        const userPixelData = await this.pixelModel.create(pixelData);
+
+        const eventData = this.createEventData(
+          userPixelData,
+          eventName,
+          timestamp,
+          testEventCode,
+        );
+
+        const userEventData = await this.eventService.createEvent(eventData);
+
+        const ttData = this.createTTData(
+          userEventData,
+          userPixelData,
+          timestamp,
+        );
+
+        await axios.post(this.ttUrl, ttData, {
+          headers: {
+            'Access-Token': this.ttToken,
+            'Content-Type': 'application/json',
+          },
+        });
+
+        return 'Pixel created successfully';
+      }
+
+      const eventData = this.createEventData(
+        existUserPixel,
+        eventName,
+        timestamp,
+        testEventCode,
+      );
+
+      const newUserEventData = await this.eventService.createEvent(eventData);
+
+      const ttData = this.createTTData(
+        newUserEventData,
+        existUserPixel,
+        timestamp,
+      );
+
+      await axios.post(this.ttUrl, ttData, {
+        headers: {
+          'Access-Token': this.ttToken,
+          'Content-Type': 'application/json',
+        },
+      });
 
       return 'Event send successfully';
     } catch (error) {

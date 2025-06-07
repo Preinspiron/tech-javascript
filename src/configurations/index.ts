@@ -15,6 +15,6 @@ export default () => ({
   expire_refresh_jwt: process.env.EXPIRE_REFRESH_JWT,
   action_source: process.env.ACTION_SOURCE,
   signal_url: process.env.SIGNAL_URL,
-  tik_tok_url: process.env.TIK_TOK_URL,
-  tik_tok_token: process.env.TIK_TOK_TOKEN,
+  tt_url: process.env.TIK_TOK_URL,
+  tt_token: process.env.TIK_TOK_TOKEN,
 });
