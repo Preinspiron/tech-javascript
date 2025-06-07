@@ -67,12 +67,7 @@ export const CUSTOM_FB_DATA_MAP: ICustomFBDataMap = {
 };
 
 export const TT_EVENT_CONVERSION: ITTEventConversion = {
-  PageView: {
-    currency: 'USD',
-    value: 0.01,
-    content_type: 'product',
-  },
-  Lead: {
+  GenerateLead: {
     currency: 'USD',
     value: 0.04,
     content_type: 'product',
@@ -82,7 +77,7 @@ export const TT_EVENT_CONVERSION: ITTEventConversion = {
     value: 0.1,
     content_type: 'product',
   },
-  CompleteRegistration: {
+  Registration: {
     currency: 'USD',
     value: 2.0,
     content_type: 'product',
