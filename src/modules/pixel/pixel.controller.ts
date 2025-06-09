@@ -68,6 +68,9 @@ export class PixelController {
     @Query('test_event_code') testEventCode?: string,
     @Query('client_user_agent') clientUserAgent?: string,
     @Query('referrer') referrer?: string,
+    @Query('token') token?: string,
+
+    // @Query('token') token?: string,
   ): Promise<string> {
     return await this.pixelService.createTTUserEvent(
       clientIp,
@@ -80,6 +83,7 @@ export class PixelController {
       testEventCode ?? null,
       clientUserAgent ?? null,
       referrer ?? null,
+      token ?? null,
     );
   }
 }

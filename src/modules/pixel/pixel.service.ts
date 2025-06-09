@@ -14,8 +14,8 @@ import axios from 'axios';
 import axiosRetry from 'axios-retry';
 import { generateRandomString } from '@helpers/fb';
 import {
-  CUSTOM_FB_DATA_MAP,
-  TT_EVENT_CONVERSION,
+  FB,
+  TT,
 } from '../../common/constants/pixel';
 
 axiosRetry(axios, {
@@ -95,8 +95,8 @@ export class PixelService {
         : {}),
     };
 
-    if (event.event_name in CUSTOM_FB_DATA_MAP) {
-      facebookData.data[0].custom_data = CUSTOM_FB_DATA_MAP[event.event_name];
+    if (event.event_name in FB) {
+      facebookData.data[0].custom_data = FB[event.event_name];
       if (event.event_name === 'ViewContent') {
         facebookData.data[0].event_id = event.event_id + 1;
       }
@@ -124,8 +124,8 @@ export class PixelService {
             ip: pixel.client_ip_address,
             user_agent: pixel.client_user_agent,
           },
-          ...(TT_EVENT_CONVERSION[event.event_name]
-            ? { properties: TT_EVENT_CONVERSION[event.event_name] }
+          ...(TT[event.event_name]
+            ? { properties: TT[event.event_name] }
             : {}),
           page: {
             url: pixel.event_source_url,
@@ -442,6 +442,7 @@ export class PixelService {
     testEventCode?: string,
     clientUserAgent?: string,
     referrer?: string,
+    token?: string,
   ) {
     try {
       const existUserPixel = await this.pixelModel.findOne({
@@ -479,13 +480,14 @@ export class PixelService {
           timestamp,
         );
 
-        await axios.post(this.ttUrl, ttData, {
+        // console.log('ttData', ttData);
+       const response =  await axios.post(this.ttUrl, ttData, {
           headers: {
-            'Access-Token': this.ttToken,
+            'Access-Token': ` ${token}`,
             'Content-Type': 'application/json',
           },
         });
-
+        // console.log('Custom->TT server response ', response);
         return 'Pixel created successfully';
       }
 
@@ -503,10 +505,12 @@ export class PixelService {
         existUserPixel,
         timestamp,
       );
+    //   console.log('ttData2', ttData.data[0].properties);
 
       await axios.post(this.ttUrl, ttData, {
         headers: {
-          'Access-Token': this.ttToken,
+          'Access-Token': ` ${token}`,
+        //   'Access-Token': token,
           'Content-Type': 'application/json',
         },
       });
