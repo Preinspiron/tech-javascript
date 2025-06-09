@@ -18,6 +18,10 @@ import {
   TT,
 } from '../../common/constants/pixel';
 
+
+console.log('start server');
+
+
 axiosRetry(axios, {
   retries: 5,
   retryDelay: (retryCount) => retryCount * 1000,
