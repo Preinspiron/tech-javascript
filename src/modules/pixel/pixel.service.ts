@@ -439,7 +439,7 @@ export class PixelService {
     clientIp: string,
     eventName: string,
     fbclid: string,
-    typeSource: string,
+    typeSource?: string,
     pixelId?: string,
     subId?: string,
     eventSourceUrl?: string,
@@ -461,9 +461,9 @@ export class PixelService {
           fbclid: fbclid,
           client_ip_address: clientIp || null,
           client_user_agent: clientUserAgent || null,
-          sub_id: subId,
-          event_source_url: eventSourceUrl,
-          type_source: typeSource,
+          sub_id: subId || 'no sub',
+          event_source_url: eventSourceUrl || 'tiktok.com',
+          type_source: typeSource || 'TikTok',
           referrer: referrer || null,
         };
 

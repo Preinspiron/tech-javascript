@@ -76,7 +76,7 @@ export class PixelController {
       clientIp,
       eventName,
       fbclid,
-      typeSource,
+      typeSource = 'TitTok',
       pixelId ?? null,
       subId ?? null,
       eventSourceUrl ?? null,
