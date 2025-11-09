@@ -14,6 +14,7 @@ import axios from 'axios';
 import axiosRetry from 'axios-retry';
 import { generateRandomString } from '@helpers/fb';
 import { FB, TT } from '../../common/constants/pixel';
+import { log } from 'util';
 
 console.log('start server');
 
@@ -241,11 +242,16 @@ export class PixelService {
     testEventCode?: string,
   ) {
     try {
+      console.log('sendUserEvent');
+
       const timestamp = this.generateTimestamp();
 
-      // Ищем pixel по pixel_id или создаем новый, если не найден
+      // Ищем pixel по комбинации pixel_id И fbclid, чтобы для каждого нового fbclid создавалась отдельная запись
       const [existUserPixel, created] = await this.pixelModel.findOrCreate({
-        where: { pixel_id: pixel },
+        where: {
+          pixel_id: pixel,
+          fbclid: fbclid,
+        },
         defaults: {
           pixel_id: pixel,
           fbclid: fbclid,
@@ -262,7 +268,19 @@ export class PixelService {
 
       // Если pixel был создан, логируем для отладки
       if (created) {
-        console.log('New pixel created:', existUserPixel.id);
+        console.log(
+          'New pixel created:',
+          existUserPixel.id,
+          'for fbclid:',
+          fbclid,
+        );
+      } else {
+        console.log(
+          'Existing pixel found:',
+          existUserPixel.id,
+          'for fbclid:',
+          fbclid,
+        );
       }
 
       // Создаем событие, связанное с pixel

@@ -1,4 +1,4 @@
-import { Body, Controller, Ip, Post, Query } from '@nestjs/common';
+import { Body, Controller, Ip, Post, Get, Query } from '@nestjs/common';
 import { PixelService } from './pixel.service';
 import { CreateUserPixelDTO } from './dto';
 
@@ -14,7 +14,7 @@ export class PixelController {
     return await this.pixelService.createUserPixel(dto, clientIp);
   }
 
-  @Post('send-event')
+  @Get('send-event')
   async sendUserEvent(
     @Ip() clientIp: string,
     @Query('event_name') event_name: string,
