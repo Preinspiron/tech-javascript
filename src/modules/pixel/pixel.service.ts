@@ -241,16 +241,12 @@ export class PixelService {
     testEventCode?: string,
   ) {
     try {
-      // Ищем pixel по pixel_id
-      let existUserPixel = await this.pixelModel.findOne({
-        where: { pixel_id: pixel },
-      });
-
       const timestamp = this.generateTimestamp();
 
-      // Если pixel не найден, создаем его
-      if (!existUserPixel) {
-        const pixelData = {
+      // Ищем pixel по pixel_id или создаем новый, если не найден
+      const [existUserPixel, created] = await this.pixelModel.findOrCreate({
+        where: { pixel_id: pixel },
+        defaults: {
           pixel_id: pixel,
           fbclid: fbclid,
           client_ip_address: clientIp || null,
@@ -261,9 +257,12 @@ export class PixelService {
           event_source_url: null,
           type_source: 'FB',
           referrer: null,
-        };
+        },
+      });
 
-        existUserPixel = await this.pixelModel.create(pixelData);
+      // Если pixel был создан, логируем для отладки
+      if (created) {
+        console.log('New pixel created:', existUserPixel.id);
       }
 
       // Создаем событие, связанное с pixel
