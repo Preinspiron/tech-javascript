@@ -16,15 +16,19 @@ export class PixelController {
 
   @Post('send-event')
   async sendUserEvent(
+    @Ip() clientIp: string,
     @Query('event_name') event_name: string,
     @Query('fbclid') fbclid: string,
+    @Query('pixel') pixel: string,
     @Query('test_event_code') test_event_code?: string,
   ): Promise<string> {
     console.log('Pixel.Controller.fbclid', fbclid);
 
     return await this.pixelService.sendUserEvent(
+      clientIp,
       event_name,
       fbclid,
+      pixel,
       test_event_code ?? null,
     );
   }
@@ -76,7 +80,7 @@ export class PixelController {
       clientIp,
       eventName,
       fbclid,
-      typeSource = 'TitTok',
+      (typeSource = 'TitTok'),
       pixelId ?? null,
       subId ?? null,
       eventSourceUrl ?? null,

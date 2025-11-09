@@ -13,14 +13,9 @@ import { CreateUserPixelDTO } from './dto';
 import axios from 'axios';
 import axiosRetry from 'axios-retry';
 import { generateRandomString } from '@helpers/fb';
-import {
-  FB,
-  TT,
-} from '../../common/constants/pixel';
-
+import { FB, TT } from '../../common/constants/pixel';
 
 console.log('start server');
-
 
 axiosRetry(axios, {
   retries: 5,
@@ -128,9 +123,7 @@ export class PixelService {
             ip: pixel.client_ip_address,
             user_agent: pixel.client_user_agent,
           },
-          ...(TT[event.event_name]
-            ? { properties: TT[event.event_name] }
-            : {}),
+          ...(TT[event.event_name] ? { properties: TT[event.event_name] } : {}),
           page: {
             url: pixel.event_source_url,
             referrer: pixel.referrer,
@@ -241,20 +234,39 @@ export class PixelService {
   }
 
   async sendUserEvent(
+    clientIp: string,
     eventName: string,
     fbclid: string,
+    pixel: string,
     testEventCode?: string,
   ) {
     try {
-      const existUserPixel = await this.pixelModel.findOne({
-        where: { fbclid: fbclid },
+      // Ищем pixel по pixel_id
+      let existUserPixel = await this.pixelModel.findOne({
+        where: { pixel_id: pixel },
       });
-
-      if (!existUserPixel)
-        throw new BadRequestException('Not found user pixel');
 
       const timestamp = this.generateTimestamp();
 
+      // Если pixel не найден, создаем его
+      if (!existUserPixel) {
+        const pixelData = {
+          pixel_id: pixel,
+          fbclid: fbclid,
+          client_ip_address: clientIp || null,
+          client_user_agent: null,
+          sub_id: null,
+          fbc: this.generateFbc(timestamp, fbclid),
+          fbp: this.generateFbp(timestamp),
+          event_source_url: null,
+          type_source: 'FB',
+          referrer: null,
+        };
+
+        existUserPixel = await this.pixelModel.create(pixelData);
+      }
+
+      // Создаем событие, связанное с pixel
       const eventData: Omit<Attributes<Event>, 'id'> = {
         user_id: existUserPixel.id,
         event_name: eventName,
@@ -485,7 +497,7 @@ export class PixelService {
         );
 
         // console.log('ttData', ttData);
-       const response =  await axios.post(this.ttUrl, ttData, {
+        const response = await axios.post(this.ttUrl, ttData, {
           headers: {
             'Access-Token': ` ${token}`,
             'Content-Type': 'application/json',
@@ -509,12 +521,12 @@ export class PixelService {
         existUserPixel,
         timestamp,
       );
-    //   console.log('ttData2', ttData.data[0].properties);
+      //   console.log('ttData2', ttData.data[0].properties);
 
       await axios.post(this.ttUrl, ttData, {
         headers: {
           'Access-Token': ` ${token}`,
-        //   'Access-Token': token,
+          //   'Access-Token': token,
           'Content-Type': 'application/json',
         },
       });
