@@ -16,7 +16,7 @@ export class PixelController {
 
   @Get('send-event')
   async sendUserEvent(
-    @Ip() clientIp: string,
+    @Query('ip') clientIp: string,
     @Query('event_name') event_name: string,
     @Query('fbclid') fbclid: string,
     @Query('pixel') pixel: string,
