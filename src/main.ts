@@ -10,18 +10,26 @@ import { execSync } from 'child_process';
 import { HttpsOptions } from '@nestjs/common/interfaces/external/https-options.interface';
 
 async function bootstrap() {
-  const httpsOptions: HttpsOptions | undefined = await getHttpsOptions();
+  // Используем NODE_ENV напрямую из переменных окружения
+  // Это стандартная переменная Node.js, которая устанавливается через:
+  // - npm run start:dev -> NODE_ENV=development
+  // - npm run start:prod -> NODE_ENV=production
+  // - render.com автоматически устанавливает NODE_ENV=production
+  const nodeEnv = process.env.NODE_ENV || 'development';
+
+  // Используем HTTPS только в development режиме
+  // В production (например, на render.com) SSL обрабатывается на уровне платформы
+  const httpsOptions: HttpsOptions | undefined =
+    nodeEnv === 'development' ? await getHttpsOptions() : undefined;
 
   const app = httpsOptions
     ? await NestFactory.create(AppModule, { httpsOptions })
     : await NestFactory.create(AppModule);
 
-  const config2 = app.get(ConfigService);
-  console.warn('Custom->config2 -> port', config2.get('port'));
-
   const configService = app.get(ConfigService);
+  console.warn('Custom->config2 -> port', configService.get('port'));
+
   const port = configService.get<number>('port', 4000);
-  const nodeEnv = configService.get<string>('node_env', 'development');
 
   const protocol = httpsOptions ? 'https' : 'http';
   console.log(`Running in ${nodeEnv} mode on ${protocol}://localhost:${port}`);
@@ -49,6 +57,13 @@ async function bootstrap() {
 }
 
 async function getHttpsOptions(): Promise<HttpsOptions | undefined> {
+  // Используем HTTPS только в development режиме
+  const nodeEnv = process.env.NODE_ENV || 'development';
+  if (nodeEnv === 'production') {
+    console.log('Production mode: SSL handled by platform (e.g., render.com)');
+    return undefined;
+  }
+
   const certPath = path.join(process.cwd(), 'certs', 'localhost-cert.pem');
   const keyPath = path.join(process.cwd(), 'certs', 'localhost-key.pem');
 
@@ -60,7 +75,7 @@ async function getHttpsOptions(): Promise<HttpsOptions | undefined> {
     };
   }
 
-  // Если сертификатов нет, создаем их программно
+  // Если сертификатов нет, создаем их программно (только в development)
   console.warn('SSL сертификаты не найдены. Создаю временные сертификаты...');
   await generateCertificates();
 
