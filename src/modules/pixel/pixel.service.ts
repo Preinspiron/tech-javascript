@@ -112,7 +112,9 @@ export class PixelService {
             madid: [mockMadid],
             email: [mockEmail],
             phone: [mockPhone],
-            client_ip_address: pixel.client_ip_address || null,
+            ...(pixel.client_ip_address && {
+              client_ip_address: pixel.client_ip_address,
+            }),
           },
           custom_data: undefined as
             | {
@@ -246,10 +248,17 @@ export class PixelService {
 
       const signalUrl = this.configService.get<string>('signal_url');
 
-      await axios.post(
-        signalUrl + userPixelData.pixel_id + '/events',
-        facebookData,
-      );
+      const stapeUrl = signalUrl + userPixelData.pixel_id + '/events';
+
+      console.log('=== Отправка события в Stape (createUserPixel) ===');
+      console.log('URL:', stapeUrl);
+      console.log('Pixel ID:', userPixelData.pixel_id);
+
+      await axios.post(stapeUrl, facebookData, {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
 
       return 'Pixel created successfully';
     } catch (error) {
@@ -327,17 +336,68 @@ export class PixelService {
         existUserPixel,
       );
 
-      const facebookUserData = await axios.post(
-        this.signalUrl + existUserPixel.pixel_id + '/events',
-        facebookData,
+      const stapeUrl = this.signalUrl + existUserPixel.pixel_id + '/events';
+
+      console.log('=== Отправка события в Stape ===');
+      console.log('URL:', stapeUrl);
+      console.log('Pixel ID:', existUserPixel.pixel_id);
+      console.log('Event Name:', userEventData.event_name);
+      console.log(
+        'Test Event Code:',
+        userEventData.test_event_code || 'нет (продакшен)',
+      );
+      console.log('Request Data:', JSON.stringify(facebookData, null, 2));
+
+      const facebookUserData = await axios.post(stapeUrl, facebookData, {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      console.log('=== Ответ от Stape ===');
+      console.log('Status:', facebookUserData.status);
+      console.log('Status Text:', facebookUserData.statusText);
+      console.log(
+        'Response Data:',
+        JSON.stringify(facebookUserData.data, null, 2),
       );
 
-      console.log('facebookUserData', facebookUserData);
+      // Проверяем наличие ошибок в ответе
+      if (facebookUserData.data?.error) {
+        console.error('ОШИБКА от Stape:', facebookUserData.data.error);
+      }
+
+      if (facebookUserData.data?.events_received !== undefined) {
+        console.log(
+          'Событий получено Stape:',
+          facebookUserData.data.events_received,
+        );
+      }
+
+      if (facebookUserData.data?.messages) {
+        console.log('Сообщения от Stape:', facebookUserData.data.messages);
+      }
 
       return 'Event send successfully';
     } catch (error) {
+      console.error('=== ОШИБКА при отправке события в Stape ===');
+      console.error('Error:', error);
+
+      if (error.response) {
+        console.error('Response Status:', error.response.status);
+        console.error(
+          'Response Data:',
+          JSON.stringify(error.response.data, null, 2),
+        );
+        console.error('Response Headers:', error.response.headers);
+      } else if (error.request) {
+        console.error('Request made but no response received:', error.request);
+      } else {
+        console.error('Error setting up request:', error.message);
+      }
+
       throw new InternalServerErrorException(
-        `Failed to process send event: ${error}`,
+        `Failed to process send event: ${error.message || error}`,
       );
     }
   }
@@ -391,10 +451,13 @@ export class PixelService {
           userPixelData,
         );
 
-        await axios.post(
-          this.signalUrl + userPixelData.pixel_id + '/events',
-          facebookData,
-        );
+        const stapeUrl = this.signalUrl + userPixelData.pixel_id + '/events';
+
+        await axios.post(stapeUrl, facebookData, {
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
 
         return 'Pixel created successfully';
       }
@@ -413,10 +476,13 @@ export class PixelService {
         existUserPixel,
       );
 
-      await axios.post(
-        this.signalUrl + existUserPixel.pixel_id + '/events',
-        facebookData,
-      );
+      const stapeUrl = this.signalUrl + existUserPixel.pixel_id + '/events';
+
+      await axios.post(stapeUrl, facebookData, {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
 
       return 'Event send successfully';
     } catch (error) {
