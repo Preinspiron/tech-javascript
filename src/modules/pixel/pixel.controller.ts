@@ -17,11 +17,11 @@ export class PixelController {
   @Get('send-event')
   async sendUserEvent(
     @Query('ip') clientIp: string,
-    @Query('agent') agent: string,
     @Query('event_name') event_name: string,
     @Query('fbclid') fbclid: string,
     @Query('pixel') pixel: string,
     @Query('test_event_code') test_event_code?: string,
+    @Query('agent') agent?: string,
   ): Promise<string> {
     console.log('Pixel.Controller.fbclid', fbclid);
 
