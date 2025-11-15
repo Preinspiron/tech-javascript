@@ -34,4 +34,3 @@ export class Creo extends Model {
   })
   url: string;
 }
-
