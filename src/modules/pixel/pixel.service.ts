@@ -87,6 +87,21 @@ export class PixelService {
     return `madid_${fbclid}_${this.generateRandomString(8)}`;
   }
 
+  // Формирует заголовки для запросов к Stape с поддержкой API ключа
+  private getStapeHeaders(): Record<string, string> {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+
+    // Добавляем API ключ, если он указан в конфигурации
+    const stapeApiKey = this.configService.get<string>('stape_api_key');
+    if (stapeApiKey) {
+      headers['Authorization'] = `Bearer ${stapeApiKey}`;
+    }
+
+    return headers;
+  }
+
   private createFacebookData(
     event: Attributes<Event>,
     pixel: Attributes<Pixel>,
@@ -255,9 +270,7 @@ export class PixelService {
       console.log('Pixel ID:', userPixelData.pixel_id);
 
       await axios.post(stapeUrl, facebookData, {
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: this.getStapeHeaders(),
       });
 
       return 'Pixel created successfully';
@@ -348,10 +361,18 @@ export class PixelService {
       );
       console.log('Request Data:', JSON.stringify(facebookData, null, 2));
 
+      // Проверяем наличие API ключа
+      const stapeApiKey = this.configService.get<string>('stape_api_key');
+      if (stapeApiKey) {
+        console.log('Используется API ключ Stape для авторизации');
+      } else {
+        console.warn(
+          '⚠️ API ключ Stape не найден. Если Stape требует авторизацию, добавьте STAPE_API_KEY в .env',
+        );
+      }
+
       const facebookUserData = await axios.post(stapeUrl, facebookData, {
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: this.getStapeHeaders(),
       });
 
       console.log('=== Ответ от Stape ===');
@@ -454,9 +475,7 @@ export class PixelService {
         const stapeUrl = this.signalUrl + userPixelData.pixel_id + '/events';
 
         await axios.post(stapeUrl, facebookData, {
-          headers: {
-            'Content-Type': 'application/json',
-          },
+          headers: this.getStapeHeaders(),
         });
 
         return 'Pixel created successfully';
@@ -479,9 +498,7 @@ export class PixelService {
       const stapeUrl = this.signalUrl + existUserPixel.pixel_id + '/events';
 
       await axios.post(stapeUrl, facebookData, {
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: this.getStapeHeaders(),
       });
 
       return 'Event send successfully';

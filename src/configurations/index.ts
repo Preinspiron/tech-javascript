@@ -60,6 +60,7 @@ export default () => {
     expire_refresh_jwt: process.env.EXPIRE_REFRESH_JWT,
     action_source: process.env.ACTION_SOURCE,
     signal_url: process.env.SIGNAL_URL,
+    stape_api_key: process.env.STAPE_API_KEY, // API ключ для Stape (если требуется)
     tt_url: process.env.TIK_TOK_URL,
     tt_token: process.env.TIK_TOK_TOKEN,
   };

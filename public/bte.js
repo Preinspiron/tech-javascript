@@ -17,6 +17,8 @@ window.btq = function (
   eventName,
   serverUrl = 'https://tech-javascript.onrender.com/pixel/create',
 ) {
+  const testEventCode = getUrlParameter('testCode');
+
   const payload = {
     pixel_id: String(pixel),
     fbclid: getUrlParameter('fbclid'),
@@ -29,7 +31,7 @@ window.btq = function (
       getCookie('subid') ||
       getCookie('_subid') ||
       '',
-    test_event_code: getUrlParameter('testCode') || '',
+    ...(testEventCode ? { test_event_code: testEventCode } : {}),
   };
 
   fetch(serverUrl, {

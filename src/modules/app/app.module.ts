@@ -13,6 +13,8 @@ import { Token } from '../token/models/token.model';
 import { Pixel } from '../pixel/models/pixel.model';
 import { PixelModule } from '../pixel/pixel.module';
 import { Event } from '../event/models/event.model';
+import { Creo } from '../creo/models/creo.model';
+import { CreoModule } from '../creo/creo.module';
 
 @Module({
   imports: [
@@ -50,7 +52,7 @@ import { Event } from '../event/models/event.model';
           database: database || '',
           synchronize: true,
           autoLoadModels: true,
-          models: [User, Watchlist, Token, Pixel, Event],
+          models: [User, Watchlist, Token, Pixel, Event, Creo],
           dialectOptions: {
             ssl: {
               require: true,
@@ -64,6 +66,7 @@ import { Event } from '../event/models/event.model';
     UserModule,
     AuthModule,
     WatchlistModule,
+    CreoModule,
   ],
   controllers: [AppController],
   providers: [AppService],
