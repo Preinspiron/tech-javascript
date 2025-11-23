@@ -13,8 +13,8 @@ export class SegmentService {
     @InjectModel(Segment) private readonly segmentModel: typeof Segment,
   ) {}
 
-  private segmentUrl = this.configService.get<string>('segment_url');
-  private segmentKey = this.configService.get<string>('segment_key');
+  private segmentUrl = this.configService.get<string>('SEGMENT_URL');
+  private segmentKey = this.configService.get<string>('SEGMENT_KEY');
 
   // Хеширование данных для external_id (SHA256)
   private hashData(data: string): string {
@@ -28,7 +28,7 @@ export class SegmentService {
     return await this.segmentModel.findOne({ where: { userId: subid } });
   }
 
-   private KeitatoConvertionStatus(status: string): string {
+  private KeitatoConvertionStatus(status: string): string {
     switch (status) {
       case 'reg':
       case 'registration':
@@ -53,11 +53,12 @@ export class SegmentService {
     if (!params.subid) {
       return 'subid is required';
     }
-
+    console.log(this.segmentUrl, this.segmentKey);
     let segmentRecord: Segment;
     const userRecord = await this.getSubid(params.subid);
-    // Если нет subid, создаем новую запись в БД
-    if (!userRecord.userId) {
+
+    // Если запись не найдена, создаем новую запись в БД
+    if (!userRecord) {
       const external_id = this.hashData(params.subid);
 
       segmentRecord = await this.segmentModel.create({
@@ -74,11 +75,25 @@ export class SegmentService {
           'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
         keitato_status: params.status || null,
       });
+      console.log('segmentRecord', segmentRecord);
+    } else {
+      // Используем существующую запись
+      segmentRecord = userRecord;
+
+      // Обновляем данные если они переданы
+      if (params.status) segmentRecord.keitato_status = params.status;
+      if (params.value) segmentRecord.value = params.value;
+      if (params.UA) segmentRecord.UA = params.UA;
+      if (params.origin) segmentRecord.origin = params.origin;
+      if (params.ip) segmentRecord.ip = params.ip;
+
+      await segmentRecord.save();
     }
 
     // Формируем payload для отправки в Segment
     const payload: Record<string, any> = {
       userId: segmentRecord.userId,
+      messageId: segmentRecord.userId + '.' + Date.now(),
       event: this.KeitatoConvertionStatus(params.status) || segmentRecord.event,
       type: segmentRecord.type || 'track',
       timestamp: Date.now(),
@@ -92,26 +107,31 @@ export class SegmentService {
         }),
       },
       value: params.value || segmentRecord.value || '1',
+      currency: 'USD',
       context: {
         userAgent: segmentRecord.UA,
-        psge: { url: segmentRecord.origin },
+        page: { url: segmentRecord.origin },
       },
-      writeKey: segmentRecord.writeKey
+      writeKey: segmentRecord.writeKey || userRecord.writeKey,
     };
 
-    
     try {
+      console.log('payload', payload);
+
       const response = await axios.post(this.segmentUrl, payload, {
         headers: {
           'Content-Type': 'application/json',
         },
       });
-      if( response.status === 200){
-         await this.segmentModel.update({
-          segment_status: "success",
-        }, { where: { userId: segmentRecord.userId } });
+      if (response.status === 200) {
+        await this.segmentModel.update(
+          {
+            segment_status: 'success',
+          },
+          { where: { userId: segmentRecord.userId } },
+        );
       }
-      
+
       return response.data;
     } catch (error) {
       console.error('Error sending data to Segment:', error);

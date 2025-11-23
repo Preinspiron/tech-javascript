@@ -9,7 +9,7 @@ export class Segment extends Model {
     allowNull: false,
   })
   userId: string;
-  
+
   @Column({ type: DataType.STRING, allowNull: true })
   ip: string;
 
@@ -28,8 +28,7 @@ export class Segment extends Model {
   @Column({ type: DataType.STRING, allowNull: true })
   value: string;
 
-
-  @Column({ type: DataType.STRING, allowNull: true })
+  @Column({ type: DataType.STRING(255), allowNull: true })
   writeKey: string;
 
   @Column({ type: DataType.STRING(1200), allowNull: true })
