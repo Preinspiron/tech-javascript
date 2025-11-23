@@ -63,5 +63,6 @@ export default () => {
     stape_api_key: process.env.STAPE_API_KEY, // API ключ для Stape (если требуется)
     tt_url: process.env.TIK_TOK_URL,
     tt_token: process.env.TIK_TOK_TOKEN,
+    segment: process.env.SEGMENT,
   };
 };

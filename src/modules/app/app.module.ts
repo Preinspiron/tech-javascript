@@ -15,6 +15,8 @@ import { PixelModule } from '../pixel/pixel.module';
 import { Event } from '../event/models/event.model';
 import { Creo } from '../creo/models/creo.model';
 import { CreoModule } from '../creo/creo.module';
+import { SegmentModule } from '../segment/segment.module';
+import { Segment } from '../segment/models/segment.model';
 
 @Module({
   imports: [
@@ -52,7 +54,7 @@ import { CreoModule } from '../creo/creo.module';
           database: database || '',
           synchronize: true,
           autoLoadModels: true,
-          models: [User, Watchlist, Token, Pixel, Event, Creo],
+          models: [User, Watchlist, Token, Pixel, Event, Creo, Segment],
           dialectOptions: {
             ssl: {
               require: true,
@@ -67,6 +69,7 @@ import { CreoModule } from '../creo/creo.module';
     AuthModule,
     WatchlistModule,
     CreoModule,
+    SegmentModule,
   ],
   controllers: [AppController],
   providers: [AppService],
