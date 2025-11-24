@@ -5,6 +5,7 @@ import axios from 'axios';
 import * as crypto from 'crypto';
 import { Segment } from './models/segment.model';
 import { generateRandomString } from '@helpers/fb';
+import { eventNames } from 'process';
 
 @Injectable()
 export class SegmentService {
@@ -165,6 +166,9 @@ export class SegmentService {
         await this.segmentModel.update(
           {
             segment_status: 'success',
+            eventNames:
+              this.KeitatoConvertionStatus(params.status) ||
+              segmentRecord.event,
           },
           { where: { userId: segmentRecord.userId } },
         );
