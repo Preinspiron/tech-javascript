@@ -98,7 +98,7 @@ export class SegmentService {
       });
       console.log('segmentRecord', segmentRecord);
     } else {
-      // Используем существующую запись
+      // Используем существующую запись - берем fbc и fbp из БД (они должны быть постоянными)
       segmentRecord = userRecord;
 
       // Обновляем данные если они переданы
@@ -108,7 +108,8 @@ export class SegmentService {
       if (params.origin) segmentRecord.origin = params.origin;
       if (params.ip) segmentRecord.ip = params.ip;
 
-      // Генерируем fbc и fbp если их еще нет или если передан новый fbclid
+      // Генерируем fbc и fbp ТОЛЬКО если их еще нет в БД
+      // Эти значения должны быть постоянными для пользователя и не перегенерироваться при каждом событии
       if (params.fbclid && !segmentRecord.fbc) {
         const timestamp = this.generateTimestamp();
         segmentRecord.fbc = this.generateFbc(timestamp, params.fbclid);
