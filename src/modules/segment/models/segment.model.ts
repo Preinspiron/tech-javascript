@@ -39,4 +39,10 @@ export class Segment extends Model {
 
   @Column({ type: DataType.STRING, allowNull: true })
   segment_status: string;
+
+  @Column({ type: DataType.STRING(500), allowNull: true })
+  fbc: string;
+
+  @Column({ type: DataType.STRING, allowNull: true })
+  fbp: string;
 }

@@ -28,6 +28,21 @@ export class SegmentService {
     return await this.segmentModel.findOne({ where: { userId: subid } });
   }
 
+  private generateTimestamp(): number {
+    return Date.now();
+  }
+
+  private generateFbc(timestamp: number, fbclid: string): string {
+    if (!fbclid) {
+      return null;
+    }
+    return `fb.1.${timestamp}.${fbclid}`;
+  }
+
+  private generateFbp(timestamp: number): string {
+    return `fb.1.${timestamp}.${generateRandomString(10)}`;
+  }
+
   private KeitatoConvertionStatus(status: string): string {
     switch (status) {
       case 'reg':
@@ -49,6 +64,7 @@ export class SegmentService {
     UA?: string;
     origin?: string;
     ip?: string;
+    fbclid?: string;
   }): Promise<any> {
     if (!params.subid) {
       return 'subid is required';
@@ -60,6 +76,9 @@ export class SegmentService {
     // Если запись не найдена, создаем новую запись в БД
     if (!userRecord) {
       const external_id = this.hashData(params.subid);
+      const timestamp = this.generateTimestamp();
+      const fbc = this.generateFbc(timestamp, params.fbclid);
+      const fbp = this.generateFbp(timestamp);
 
       segmentRecord = await this.segmentModel.create({
         userId: params.subid,
@@ -74,6 +93,8 @@ export class SegmentService {
           params.UA ||
           'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
         keitato_status: params.status || null,
+        fbc,
+        fbp,
       });
       console.log('segmentRecord', segmentRecord);
     } else {
@@ -86,6 +107,16 @@ export class SegmentService {
       if (params.UA) segmentRecord.UA = params.UA;
       if (params.origin) segmentRecord.origin = params.origin;
       if (params.ip) segmentRecord.ip = params.ip;
+
+      // Генерируем fbc и fbp если их еще нет или если передан новый fbclid
+      if (params.fbclid && !segmentRecord.fbc) {
+        const timestamp = this.generateTimestamp();
+        segmentRecord.fbc = this.generateFbc(timestamp, params.fbclid);
+      }
+      if (!segmentRecord.fbp) {
+        const timestamp = this.generateTimestamp();
+        segmentRecord.fbp = this.generateFbp(timestamp);
+      }
 
       await segmentRecord.save();
     }
@@ -105,6 +136,12 @@ export class SegmentService {
         ...(segmentRecord.UA && {
           client_user_agent: segmentRecord.UA,
         }),
+        ...(segmentRecord.fbc && {
+          fbc: segmentRecord.fbc,
+        }),
+        ...(segmentRecord.fbp && {
+          fbp: segmentRecord.fbp,
+        }),
       },
       value: params.value || segmentRecord.value || '1',
       currency: 'USD',
@@ -112,7 +149,7 @@ export class SegmentService {
         userAgent: segmentRecord.UA,
         page: { url: segmentRecord.origin },
       },
-      writeKey: segmentRecord.writeKey || userRecord.writeKey,
+      writeKey: segmentRecord.writeKey,
     };
 
     try {
