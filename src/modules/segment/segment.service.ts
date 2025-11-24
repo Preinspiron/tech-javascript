@@ -129,6 +129,7 @@ export class SegmentService {
       event: this.KeitatoConvertionStatus(params.status) || segmentRecord.event,
       type: segmentRecord.type || 'track',
       timestamp: Date.now(),
+      event_source_url: segmentRecord.origin,
       user_data: {
         externalId: segmentRecord.external_id,
         ...(segmentRecord.ip && {
