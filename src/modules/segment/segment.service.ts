@@ -65,6 +65,7 @@ export class SegmentService {
     origin?: string;
     ip?: string;
     fbclid?: string;
+    ad_name?: string;
   }): Promise<any> {
     if (!params.subid) {
       return 'subid is required';
@@ -91,10 +92,11 @@ export class SegmentService {
         writeKey: this.segmentKey,
         UA:
           params.UA ||
-          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Mobile Safari/537.3',
         keitato_status: params.status || null,
         fbc,
         fbp,
+        ad_name: params.ad_name || null,
       });
       console.log('segmentRecord', segmentRecord);
     } else {
@@ -107,6 +109,7 @@ export class SegmentService {
       if (params.UA) segmentRecord.UA = params.UA;
       if (params.origin) segmentRecord.origin = params.origin;
       if (params.ip) segmentRecord.ip = params.ip;
+      if (params.ad_name) segmentRecord.ad_name = params.ad_name;
 
       // Генерируем fbc и fbp ТОЛЬКО если их еще нет в БД
       // Эти значения должны быть постоянными для пользователя и не перегенерироваться при каждом событии

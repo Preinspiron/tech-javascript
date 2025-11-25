@@ -14,6 +14,8 @@ export class SegmentController {
     @Query('UA') UA?: string,
     @Query('origin') origin?: string,
     @Query('fbclid') fbclid?: string,
+    @Query('ad_name') ad_name?: string,
+
   ): Promise<any> {
     return await this.segmentService.sendTrackEvent({
       status,
@@ -23,6 +25,7 @@ export class SegmentController {
       UA,
       ip,
       fbclid,
+      ad_name
     });
   }
 }

@@ -26,7 +26,6 @@ function parseDatabaseUrl(databaseUrl) {
 
 const parsedDb = parseDatabaseUrl(process.env.DATABASE_URL);
 
-console.log('parsedDb', parsedDb);
 
 const dbConfig = parsedDb
   ? {
@@ -45,7 +44,6 @@ const dbConfig = parsedDb
       dialect: 'postgres',
     };
 
-console.log('dbConfig', dbConfig);
 
 module.exports = {
   development: dbConfig,

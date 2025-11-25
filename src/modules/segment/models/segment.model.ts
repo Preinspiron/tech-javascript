@@ -45,4 +45,7 @@ export class Segment extends Model {
 
   @Column({ type: DataType.STRING, allowNull: true })
   fbp: string;
+
+  @Column({ type: DataType.STRING, allowNull: true })
+  ad_name: string;
 }
