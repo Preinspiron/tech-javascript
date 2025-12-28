@@ -55,6 +55,7 @@ export class SegmentService {
       case 'PageView':
         return 'PageView';
       case 'Lead':
+      case 'lead':
         return 'Lead';
       case 'ViewContent':
         return 'ViewContent';
