@@ -59,6 +59,10 @@ export class SegmentService {
         return 'Lead';
       case 'ViewContent':
         return 'ViewContent';
+      case 'new':
+        return 'NewUser';
+      case 'existed':
+        return 'ExistingUser';
       default:
         return 'Purchase';
     }
