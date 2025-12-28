@@ -111,7 +111,10 @@ export class SegmentService {
       segmentRecord = userRecord;
 
       // Обновляем данные если они переданы
-      if (params.status) segmentRecord.keitato_status = params.status;
+      if (params.status) {
+        segmentRecord.keitato_status = params.status;
+        segmentRecord.event = this.KeitatoConvertionStatus(params.status);
+      }
       if (params.value) segmentRecord.value = params.value;
       if (params.UA) segmentRecord.UA = params.UA;
       if (params.origin) segmentRecord.origin = params.origin;
