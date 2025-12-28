@@ -52,6 +52,12 @@ export class SegmentService {
       case 'deposit':
       case 'sale':
         return 'Purchase';
+      case 'PageView':
+        return 'PageView';
+      case 'Lead':
+        return 'Lead';
+      case 'ViewContent':
+        return 'ViewContent';
       default:
         return 'Purchase';
     }
