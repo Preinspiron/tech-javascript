@@ -94,7 +94,7 @@ export class SegmentService {
 
       segmentRecord = await this.segmentModel.create({
         userId: params.subid,
-        ip: params.ip || '127.0.0.1',
+        ip: params.ip ?? null,
         origin: params.origin || 'https://traffband.info',
         external_id,
         event: this.KeitatoConvertionStatus(params.status),
