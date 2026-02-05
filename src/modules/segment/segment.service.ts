@@ -72,6 +72,7 @@ export class SegmentService {
     status?: string;
     subid?: string;
     value?: string;
+    key?: string;
     UA?: string;
     origin?: string;
     ip?: string;
@@ -168,7 +169,7 @@ export class SegmentService {
         userAgent: segmentRecord.UA,
         page: { url: segmentRecord.origin },
       },
-      writeKey: segmentRecord.writeKey,
+      writeKey: params.key || segmentRecord.writeKey,
     };
 
     try {

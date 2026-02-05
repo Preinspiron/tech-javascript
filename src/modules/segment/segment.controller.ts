@@ -10,6 +10,7 @@ export class SegmentController {
     @Query('subid') subid: string,
     @Query('ip') ip: string,
     @Query('status') status: string,
+    @Query('key') key?: string,
     @Query('value') value?: string,
     @Query('UA') UA?: string,
     @Query('origin') origin?: string,
