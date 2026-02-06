@@ -24,6 +24,7 @@ export class SegmentController {
       value,
       origin,
       UA,
+      key,
       ip,
       fbclid,
       ad_name
