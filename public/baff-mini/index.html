@@ -60,6 +60,40 @@
         font-size: 11px;
         color: #9ca3af;
       }
+      .menu-button {
+        width: 26px;
+        height: 26px;
+        border-radius: 999px;
+        border: 1px solid #1f2937;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #020617;
+        color: #9ca3af;
+        cursor: pointer;
+        font-size: 14px;
+      }
+      .menu-popup {
+        position: absolute;
+        right: 16px;
+        top: 46px;
+        background: #020617;
+        border-radius: 10px;
+        border: 1px solid #1f2937;
+        box-shadow: 0 12px 30px rgba(15, 23, 42, 0.7);
+        padding: 6px 0;
+        min-width: 140px;
+        z-index: 20;
+      }
+      .menu-item {
+        padding: 6px 12px;
+        font-size: 12px;
+        color: #e5e7eb;
+        cursor: pointer;
+      }
+      .menu-item:hover {
+        background: #0b1120;
+      }
       .field {
         margin-bottom: 10px;
       }
@@ -121,6 +155,27 @@
         color: #ecfdf5;
         background: rgba(34, 197, 94, 0.12);
       }
+      .top-tabs {
+        display: flex;
+        gap: 6px;
+        margin-bottom: 10px;
+      }
+      .top-tab {
+        flex: 1;
+        padding: 7px 10px;
+        border-radius: 999px;
+        border: 1px solid #1f2937;
+        font-size: 13px;
+        font-weight: 500;
+        cursor: pointer;
+        background: #020617;
+        color: #9ca3af;
+      }
+      .top-tab.active {
+        border-color: #22c55e;
+        background: rgba(34, 197, 94, 0.12);
+        color: #ecfdf5;
+      }
       .periods {
         display: grid;
         gap: 8px;
@@ -164,6 +219,54 @@
         font-size: 12px;
         color: #6b7280;
       }
+      .intro {
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 16px;
+        margin-top: 8px;
+      }
+      .intro-row {
+        display: flex;
+        gap: 10px;
+      }
+      .intro-card {
+        flex: 1;
+        border-radius: 16px;
+        padding: 12px;
+        background: radial-gradient(circle at top left, #0f172a, #020617);
+        border: 1px solid #1f2937;
+      }
+      .intro-label {
+        font-size: 11px;
+        color: #9ca3af;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        margin-bottom: 4px;
+      }
+      .intro-value {
+        font-size: 20px;
+        font-weight: 700;
+        color: #ecfeff;
+      }
+      .intro-caption {
+        font-size: 11px;
+        color: #6b7280;
+        margin-top: 2px;
+      }
+      .intro-center {
+        text-align: center;
+        font-size: 13px;
+        color: #e5e7eb;
+      }
+      .intro-link {
+        color: #22c55e;
+        font-weight: 600;
+        text-decoration: none;
+      }
+      .intro-link:hover {
+        text-decoration: underline;
+      }
     </style>
   </head>
   <body>
@@ -173,47 +276,141 @@
           <div class="logo-badge">B</div>
           <div>
             <div class="logo-title">BAFF Stats</div>
-            <div class="muted">Mini dashboard by company id</div>
+            <div class="muted">Mini stats dashboard</div>
           </div>
+        </div>
+        <button type="button" class="menu-button" id="menuButton">⋮</button>
+        <div
+          id="menuPopup"
+          class="menu-popup"
+          style="display: none"
+        >
+          <div class="menu-item" id="menuSupport">BAFF support</div>
         </div>
       </div>
 
-      <div class="field">
-        <label for="companyIds">Company IDs (comma separated)</label>
-        <input
-          id="companyIds"
-          type="text"
-          placeholder="149,150"
-          autocomplete="off"
-        />
+      <div id="introScreen" style="display: none">
+        <div class="intro">
+          <div class="intro-row">
+            <div class="intro-card">
+              <div class="intro-label">FTD TODAY</div>
+              <div class="intro-value" id="ftdTodayValue">0</div>
+              <div class="intro-caption">Growing towards 10,000</div>
+            </div>
+            <div class="intro-card">
+              <div class="intro-label">FTD YEAR</div>
+              <div class="intro-value" id="ftdYearValue">0</div>
+              <div class="intro-caption">Target: 1,000,000</div>
+            </div>
+          </div>
+          <div class="intro-center">
+            Need help?&nbsp;
+            <a
+              href="https://t.me/+C4MhFEK6ruJmOGVk"
+              class="intro-link"
+              target="_blank"
+              rel="noopener noreferrer"
+              >BAFF support</a
+            >
+          </div>
+          <button id="introContinueBtn">Continue</button>
+        </div>
       </div>
-      <button id="loadBtn">Load stats</button>
-      <div id="error" class="error" style="display: none"></div>
 
-      <div id="content" style="display: none">
-        <div class="tabs" id="tabs"></div>
-        <div class="periods" id="periods"></div>
-        <div class="meta" id="meta"></div>
-      </div>
+      <div id="mainScreen" style="display: none">
+        <div class="top-tabs">
+          <button
+            type="button"
+            class="top-tab active"
+            id="offersTab"
+          >
+            Offers
+          </button>
+          <button
+            type="button"
+            class="top-tab"
+            id="companiesTab"
+          >
+            Companies
+          </button>
+        </div>
 
-      <div id="empty" class="empty">
-        Enter company id(s) and tap "Load stats".
+        <div id="offersPanel">
+          <div class="field">
+            <label for="offerKey">Offer key</label>
+            <input
+              id="offerKey"
+              type="text"
+              placeholder="Paste offer key"
+              autocomplete="off"
+            />
+          </div>
+          <button id="loadOfferBtn">Load stats</button>
+        </div>
+
+        <div id="companiesPanel" style="display: none">
+          <div class="field">
+            <label for="companyKey">Company key</label>
+            <input
+              id="companyKey"
+              type="text"
+              placeholder="Paste company key"
+              autocomplete="off"
+            />
+          </div>
+          <button id="loadCompanyBtn">Load stats</button>
+        </div>
+
+        <div id="error" class="error" style="display: none"></div>
+
+        <div id="content" style="display: none">
+          <div class="tabs" id="tabs"></div>
+          <div class="periods" id="periods"></div>
+          <div class="meta" id="meta"></div>
+        </div>
+
+        <div id="empty" class="empty">
+          Enter key and tap "Load stats".
+        </div>
       </div>
     </div>
 
     <script>
-      const loadBtn = document.getElementById('loadBtn');
-      const companyInput = document.getElementById('companyIds');
+      const SUPPORT_URL = 'https://t.me/+C4MhFEK6ruJmOGVk';
+
+      const introScreen = document.getElementById('introScreen');
+      const mainScreen = document.getElementById('mainScreen');
+      const ftdTodayValue = document.getElementById('ftdTodayValue');
+      const ftdYearValue = document.getElementById('ftdYearValue');
+      const introContinueBtn = document.getElementById('introContinueBtn');
+
+      const offersTab = document.getElementById('offersTab');
+      const companiesTab = document.getElementById('companiesTab');
+      const offersPanel = document.getElementById('offersPanel');
+      const companiesPanel = document.getElementById('companiesPanel');
+
+      const offerInput = document.getElementById('offerKey');
+      const companyInput = document.getElementById('companyKey');
+      const loadOfferBtn = document.getElementById('loadOfferBtn');
+      const loadCompanyBtn = document.getElementById('loadCompanyBtn');
+
       const tabsEl = document.getElementById('tabs');
       const periodsEl = document.getElementById('periods');
       const metaEl = document.getElementById('meta');
       const errorEl = document.getElementById('error');
       const contentEl = document.getElementById('content');
       const emptyEl = document.getElementById('empty');
+      const menuButton = document.getElementById('menuButton');
+      const menuPopup = document.getElementById('menuPopup');
+      const menuSupport = document.getElementById('menuSupport');
 
       let state = {
+        mode: 'offers', // 'offers' | 'companies'
+        offers: [],
         companies: [],
-        activeId: null,
+        activeOfferId: null,
+        activeCompanyId: null,
+        currentLabel: null,
       };
 
       function formatBlock(title, s) {
@@ -242,7 +439,10 @@
       }
 
       function render() {
-        if (!state.companies.length) {
+        const items =
+          state.mode === 'offers' ? state.offers : state.companies;
+
+        if (!items.length) {
           contentEl.style.display = 'none';
           emptyEl.style.display = 'block';
           return;
@@ -250,24 +450,57 @@
         contentEl.style.display = 'block';
         emptyEl.style.display = 'none';
 
-        if (!state.activeId) {
-          state.activeId = state.companies[0].companyId;
+        if (state.mode === 'offers' && !state.activeOfferId && items[0]) {
+          state.activeOfferId = items[0].offerId;
+        }
+        if (state.mode === 'companies' && !state.activeCompanyId && items[0]) {
+          state.activeCompanyId = items[0].companyId;
         }
 
         tabsEl.innerHTML = '';
-        state.companies.forEach((c) => {
-          const tab = document.createElement('button');
-          tab.type = 'button';
-          tab.className = 'tab' + (c.companyId === state.activeId ? ' active' : '');
-          tab.textContent = `Company ${c.companyId}`;
-          tab.onclick = () => {
-            state.activeId = c.companyId;
-            render();
-          };
-          tabsEl.appendChild(tab);
-        });
 
-        const active = state.companies.find((c) => c.companyId === state.activeId);
+        if (state.mode === 'offers') {
+          items.forEach((o) => {
+            const tab = document.createElement('button');
+            tab.type = 'button';
+            tab.className =
+              'tab' + (o.offerId === state.activeOfferId ? ' active' : '');
+            const name = o.offerName || '';
+            tab.textContent = name
+              ? `${o.offerId} | ${name}`
+              : `Offer ${o.offerId}`;
+            tab.onclick = () => {
+              state.activeOfferId = o.offerId;
+              render();
+            };
+            tabsEl.appendChild(tab);
+          });
+        } else {
+          items.forEach((c) => {
+            const tab = document.createElement('button');
+            tab.type = 'button';
+            tab.className =
+              'tab' +
+              (c.companyId === state.activeCompanyId ? ' active' : '');
+            const name = c.all.companyName || '';
+            tab.textContent = name
+              ? `${c.companyId} | ${name}`
+              : `Company ${c.companyId}`;
+            tab.onclick = () => {
+              state.activeCompanyId = c.companyId;
+              render();
+            };
+            tabsEl.appendChild(tab);
+          });
+        }
+
+        let active;
+        if (state.mode === 'offers') {
+          active = items.find((o) => o.offerId === state.activeOfferId);
+        } else {
+          active = items.find((c) => c.companyId === state.activeCompanyId);
+        }
+
         if (!active) return;
 
         periodsEl.innerHTML = '';
@@ -275,38 +508,157 @@
         periodsEl.appendChild(formatBlock('Yesterday', active.yesterday));
         periodsEl.appendChild(formatBlock('Today', active.today));
 
-        metaEl.textContent = `company: ${active.companyId}`;
+        if (state.mode === 'offers') {
+          metaEl.textContent = `offer: ${active.offerId}${
+            state.currentLabel ? ` • label: ${state.currentLabel}` : ''
+          }`;
+        } else {
+          metaEl.textContent = `company: ${active.companyId}${
+            state.currentLabel ? ` • label: ${state.currentLabel}` : ''
+          }`;
+        }
       }
 
-      async function loadStats() {
-        const raw = (companyInput.value || '').trim();
+      async function loadOfferStats() {
+        const raw = (offerInput.value || '').trim();
         if (!raw) {
-          errorEl.textContent = 'Enter at least one company id.';
+          errorEl.textContent = 'Enter offer key.';
           errorEl.style.display = 'block';
           return;
         }
         errorEl.style.display = 'none';
-        loadBtn.disabled = true;
+        loadOfferBtn.disabled = true;
 
         try {
-          const params = new URLSearchParams({ companyIds: raw });
-          const res = await fetch(`/bot/company-stat?${params.toString()}`);
+          const params = new URLSearchParams({ key: raw });
+          const res = await fetch(`/bot/offer-key-stat?${params.toString()}`);
           if (!res.ok) {
             throw new Error('Request failed: ' + res.status);
           }
           const data = await res.json();
-          state.companies = data.companies || [];
-          state.activeId = null;
+          state.mode = 'offers';
+          state.offers = data.offers || [];
+          state.currentLabel = data.label || null;
+          state.activeOfferId = null;
           render();
         } catch (e) {
-          errorEl.textContent = 'Failed to load stats. Please try again.';
+          errorEl.textContent = 'Failed to load offer stats. Please check key.';
           errorEl.style.display = 'block';
         } finally {
-          loadBtn.disabled = false;
+          loadOfferBtn.disabled = false;
         }
       }
 
-      loadBtn.addEventListener('click', loadStats);
+      async function loadCompanyStats() {
+        const raw = (companyInput.value || '').trim();
+        if (!raw) {
+          errorEl.textContent = 'Enter company key.';
+          errorEl.style.display = 'block';
+          return;
+        }
+        errorEl.style.display = 'none';
+        loadCompanyBtn.disabled = true;
+
+        try {
+          const params = new URLSearchParams({ key: raw });
+          const res = await fetch(
+            `/bot/company-key-stat?${params.toString()}`,
+          );
+          if (!res.ok) {
+            throw new Error('Request failed: ' + res.status);
+          }
+          const data = await res.json();
+          state.mode = 'companies';
+          state.companies = data.companies || [];
+          state.currentLabel = data.label || null;
+          state.activeCompanyId = null;
+          render();
+        } catch (e) {
+          errorEl.textContent =
+            'Failed to load company stats. Please check key.';
+          errorEl.style.display = 'block';
+        } finally {
+          loadCompanyBtn.disabled = false;
+        }
+      }
+
+      function showIntroOrMain() {
+        const seen = localStorage.getItem('baff_intro_seen') === '1';
+        if (seen) {
+          introScreen.style.display = 'none';
+          mainScreen.style.display = 'block';
+        } else {
+          introScreen.style.display = 'block';
+          mainScreen.style.display = 'none';
+          startIntroAnimation();
+        }
+      }
+
+      function startIntroAnimation() {
+        animateValue(ftdTodayValue, 0, 10000, 2000);
+        animateValue(ftdYearValue, 500000, 1000000, 2200);
+      }
+
+      function animateValue(el, start, end, duration) {
+        const startTime = performance.now();
+        function frame(now) {
+          const progress = Math.min((now - startTime) / duration, 1);
+          const value = Math.round(start + (end - start) * progress);
+          el.textContent = value.toLocaleString('en-US');
+          if (progress < 1) {
+            requestAnimationFrame(frame);
+          }
+        }
+        requestAnimationFrame(frame);
+      }
+
+      introContinueBtn.addEventListener('click', () => {
+        localStorage.setItem('baff_intro_seen', '1');
+        introScreen.style.display = 'none';
+        mainScreen.style.display = 'block';
+      });
+
+      offersTab.addEventListener('click', () => {
+        state.mode = 'offers';
+        offersTab.classList.add('active');
+        companiesTab.classList.remove('active');
+        offersPanel.style.display = 'block';
+        companiesPanel.style.display = 'none';
+        render();
+      });
+
+      companiesTab.addEventListener('click', () => {
+        state.mode = 'companies';
+        companiesTab.classList.add('active');
+        offersTab.classList.remove('active');
+        offersPanel.style.display = 'none';
+        companiesPanel.style.display = 'block';
+        render();
+      });
+
+      loadOfferBtn.addEventListener('click', loadOfferStats);
+      loadCompanyBtn.addEventListener('click', loadCompanyStats);
+
+      menuButton.addEventListener('click', () => {
+        const isVisible = menuPopup.style.display === 'block';
+        menuPopup.style.display = isVisible ? 'none' : 'block';
+      });
+
+      window.addEventListener('click', (e) => {
+        if (
+          e.target !== menuButton &&
+          !menuPopup.contains(e.target)
+        ) {
+          menuPopup.style.display = 'none';
+        }
+      });
+
+      menuSupport.addEventListener('click', () => {
+        window.open(SUPPORT_URL, '_blank');
+        menuPopup.style.display = 'none';
+      });
+
+      document.addEventListener('DOMContentLoaded', showIntroOrMain);
     </script>
   </body>
 </html>

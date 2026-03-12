@@ -11,8 +11,9 @@ type StatPeriod = 'today' | 'yesterday' | 'all';
 type ChatState =
   | { state: 'idle' }
   | { state: 'awaiting_key' }
-  | { state: 'awaiting_setup' }
-  | { state: 'awaiting_stop_key' };
+  | { state: 'awaiting_stop_key' }
+  | { state: 'awaiting_offer_config' }
+  | { state: 'awaiting_company_config' };
 
 @Injectable()
 export class BotService implements OnModuleInit {
@@ -112,19 +113,34 @@ export class BotService implements OnModuleInit {
       await askKey(chatId);
     });
 
-    this.bot.onText(/^\/setup(?:@\w+)?$/, async (msg) => {
-      const chatId = msg.chat.id;
-      this.chatStates.set(chatId, { state: 'awaiting_setup' });
-      await this.bot!.sendMessage(
-        chatId,
-        'Send settings in format:\n\n' +
-          'offerId1,offerId2 Label\n\n' +
-          'Examples:\n' +
-          '123 Casino A RU\n' +
-          '123,456 Casino Pack\n\n' +
-          'Daily stats will be sent at 10:00 (server time).',
-      );
-    });
+    this.bot.onText(
+      /^\/setup(?:@\w+)?(?:\s+(.+))?$/,
+      async (msg, match?: RegExpExecArray | null) => {
+        const chatId = msg.chat.id;
+        const providedPassword = match && match[1] ? match[1].trim() : '';
+        const expectedPassword =
+          this.configService.get<string>('BOT_SETUP_PASSWORD') ||
+          'Samtron123';
+
+        if (!providedPassword || providedPassword !== expectedPassword) {
+          await this.bot!.sendMessage(chatId, 'Access denied.');
+          return;
+        }
+
+        const keyboard = {
+          reply_markup: {
+            inline_keyboard: [
+              [
+                { text: 'Offer', callback_data: 'setup_offer' },
+                { text: 'Company', callback_data: 'setup_company' },
+              ],
+            ],
+          },
+        } as TelegramBot.SendMessageOptions;
+
+        await this.bot!.sendMessage(chatId, 'Choose key type:', keyboard);
+      },
+    );
 
     this.bot.onText(/^\/stop(?:@\w+)?$/, async (msg) => {
       const chatId = msg.chat.id;
@@ -134,6 +150,35 @@ export class BotService implements OnModuleInit {
         'Send the key for which you want to stop stats in this chat.\n' +
           'If you want to remove all keys from this chat — send ALL.',
       );
+    });
+
+    this.bot.on('callback_query', async (query) => {
+      const chatId = query.message?.chat.id;
+      const data = query.data;
+
+      if (!chatId || !data) {
+        return;
+      }
+
+      if (data === 'setup_offer') {
+        this.chatStates.set(chatId, { state: 'awaiting_offer_config' });
+        await this.bot!.sendMessage(
+          chatId,
+          'Send offer config in format: offerId1,offerId2 Label\n' +
+            'Example: 149,150 BETFM',
+        );
+      } else if (data === 'setup_company') {
+        this.chatStates.set(chatId, { state: 'awaiting_company_config' });
+        await this.bot!.sendMessage(
+          chatId,
+          'Send company config in format: companyId1,companyId2 Label\n' +
+            'Example: 10,11 BrandX',
+        );
+      }
+
+      if (query.id) {
+        await this.bot!.answerCallbackQuery(query.id);
+      }
     });
 
     this.bot.on('message', async (msg) => {
@@ -153,8 +198,11 @@ export class BotService implements OnModuleInit {
       if (state.state === 'awaiting_key') {
         await this.handleKeyForChat(chatId, text);
         this.chatStates.set(chatId, { state: 'idle' });
-      } else if (state.state === 'awaiting_setup') {
-        await this.handleSetupForChat(chatId, text);
+      } else if (state.state === 'awaiting_offer_config') {
+        await this.handleSetupForChat(chatId, text, 'offer');
+        this.chatStates.set(chatId, { state: 'idle' });
+      } else if (state.state === 'awaiting_company_config') {
+        await this.handleSetupForChat(chatId, text, 'company');
         this.chatStates.set(chatId, { state: 'idle' });
       } else if (state.state === 'awaiting_stop_key') {
         await this.handleStopForChat(chatId, text);
@@ -166,33 +214,37 @@ export class BotService implements OnModuleInit {
   private async handleSetupForChat(
     chatId: number,
     text: string,
+    type: 'offer' | 'company',
   ): Promise<void> {
     if (!this.bot) {
       return;
     }
 
     const parts = text.trim().split(/\s+/);
-    const offersPart = parts[0];
+    const idsPart = parts[0];
     const labelPart = parts.slice(1).join(' ');
 
-    if (!offersPart) {
+    if (!idsPart) {
+      const usagePrefix =
+        type === 'offer'
+          ? 'offerId1,offerId2 Label'
+          : 'companyId1,companyId2 Label';
       await this.bot.sendMessage(
         chatId,
-        'Cannot parse format. Use: offerId1,offerId2 Label',
+        `Cannot parse format. Use: ${usagePrefix}`,
       );
       return;
     }
 
-    const offerIds = offersPart
+    const ids = idsPart
       .split(',')
       .map((id) => id.trim())
       .filter(Boolean);
 
-    if (offerIds.length === 0) {
-      await this.bot.sendMessage(
-        chatId,
-        'You must specify at least one offer_id.',
-      );
+    if (ids.length === 0) {
+      const what =
+        type === 'offer' ? 'at least one offer_id.' : 'at least one companyId.';
+      await this.bot.sendMessage(chatId, `You must specify ${what}`);
       return;
     }
 
@@ -201,16 +253,19 @@ export class BotService implements OnModuleInit {
     await this.botSubscriptionModel.create({
       key,
       chatId: String(chatId),
-      offerIds: offerIds.join(','),
+      offerIds: ids.join(','),
       label: labelPart || null,
       sendHour: this.dailySendHour,
+      type,
     });
 
     await this.bot.sendMessage(
       chatId,
       'Key created.\n\n' +
         `Key: ${key}\n` +
-        `Offers: ${offerIds.join(', ')}\n` +
+        (type === 'offer'
+          ? `Offers: ${ids.join(', ')}\n`
+          : `Companies: ${ids.join(', ')}\n`) +
         (labelPart ? `Label: ${labelPart}\n` : '') +
         `Daily stats will be sent around ${this.dailySendHour}:00 (server time).\n\n` +
         'To get stats immediately — send /stat and then this key.',
@@ -247,57 +302,106 @@ export class BotService implements OnModuleInit {
       await subscription.save();
     }
 
-    const offerIds = subscription.offerIds
-      .split(',')
-      .map((id) => id.trim())
-      .filter(Boolean);
-
     const lines: string[] = [];
+    const type = (subscription as any).type || 'offer';
 
-    for (const offerId of offerIds) {
-      const [all, yesterday, today] = await Promise.all([
-        this.fetchOfferStats(offerId, 'all'),
-        this.fetchOfferStats(offerId, 'yesterday'),
-        this.fetchOfferStats(offerId, 'today'),
-      ]);
+    if (type === 'company') {
+      const companyIds = subscription.offerIds
+        .split(',')
+        .map((id) => id.trim())
+        .filter(Boolean);
 
-      const formatBlock = (
-        prefix: string,
-        s: Awaited<ReturnType<typeof this.fetchOfferStats>>,
-      ) => {
-        const spendInt = Math.round(s.spent);
-        const r2d = Math.round(s.regToDepSalePercent);
-        const uniq2conv = Math.round(s.uniqueToConvPercent);
-        const costPerConv = s.costPerConversion.toFixed(2);
-        const costPerDep = s.costPerDepSale.toFixed(2);
-        const namePart = s.offerName ? ` ${s.offerName}` : '';
+      const companies = await this.getCompanyStats(companyIds);
 
-        return [
-          `${prefix} -> ${offerId}${namePart}`,
-          `  Clicks: ${s.clicks}`,
-          `  Uniques: ${s.uniques}`,
-          `  spend: $${spendInt}`,
-          `  regs: ${s.regs}`,
-          `  deps: ${s.depositsSalesCount}`,
-          `  r2d: ${r2d}%`,
-          `  uniq2conv: ${uniq2conv}%`,
-          `  cost per conversion: ${costPerConv}$`,
-          `  cost per deposit: ${costPerDep}$`,
-        ].join('\n');
-      };
+      for (const company of companies) {
+        const formatBlock = (
+          prefix: string,
+          s: Awaited<ReturnType<typeof this.fetchCompanyStats>>,
+          companyId: string,
+        ) => {
+          const spendInt = Math.round(s.spent);
+          const r2d = Math.round(s.regToDepSalePercent);
+          const uniq2conv = Math.round(s.uniqueToConvPercent);
+          const costPerConv = s.costPerConversion.toFixed(2);
+          const costPerDep = s.costPerDepSale.toFixed(2);
+          const namePart = s.companyName ? ` ${s.companyName}` : '';
 
-      lines.push(formatBlock('All time', all));
-      lines.push('');
-      lines.push(formatBlock('Yesterday', yesterday));
-      lines.push('');
-      lines.push(formatBlock('Today', today));
-      lines.push('\n');
+          return [
+            `${prefix} -> ${companyId}${namePart}`,
+            `  Clicks: ${s.clicks}`,
+            `  Uniques: ${s.uniques}`,
+            `  spend: $${spendInt}`,
+            `  regs: ${s.regs}`,
+            `  deps: ${s.depositsSalesCount}`,
+            `  r2d: ${r2d}%`,
+            `  uniq2conv: ${uniq2conv}%`,
+            `  cost per conversion: ${costPerConv}$`,
+            `  cost per deposit: ${costPerDep}$`,
+          ].join('\n');
+        };
+
+        lines.push(formatBlock('All time', company.all, company.companyId));
+        lines.push('');
+        lines.push(
+          formatBlock('Yesterday', company.yesterday, company.companyId),
+        );
+        lines.push('');
+        lines.push(formatBlock('Today', company.today, company.companyId));
+        lines.push('\n');
+      }
+    } else {
+      const offerIds = subscription.offerIds
+        .split(',')
+        .map((id) => id.trim())
+        .filter(Boolean);
+
+      for (const offerId of offerIds) {
+        const [all, yesterday, today] = await Promise.all([
+          this.fetchOfferStats(offerId, 'all'),
+          this.fetchOfferStats(offerId, 'yesterday'),
+          this.fetchOfferStats(offerId, 'today'),
+        ]);
+
+        const formatBlock = (
+          prefix: string,
+          s: Awaited<ReturnType<typeof this.fetchOfferStats>>,
+        ) => {
+          const spendInt = Math.round(s.spent);
+          const r2d = Math.round(s.regToDepSalePercent);
+          const uniq2conv = Math.round(s.uniqueToConvPercent);
+          const costPerConv = s.costPerConversion.toFixed(2);
+          const costPerDep = s.costPerDepSale.toFixed(2);
+          const namePart = s.offerName ? ` ${s.offerName}` : '';
+
+          return [
+            `${prefix} -> ${offerId}${namePart}`,
+            `  Clicks: ${s.clicks}`,
+            `  Uniques: ${s.uniques}`,
+            `  spend: $${spendInt}`,
+            `  regs: ${s.regs}`,
+            `  deps: ${s.depositsSalesCount}`,
+            `  r2d: ${r2d}%`,
+            `  uniq2conv: ${uniq2conv}%`,
+            `  cost per conversion: ${costPerConv}$`,
+            `  cost per deposit: ${costPerDep}$`,
+          ].join('\n');
+        };
+
+        lines.push(formatBlock('All time', all));
+        lines.push('');
+        lines.push(formatBlock('Yesterday', yesterday));
+        lines.push('');
+        lines.push(formatBlock('Today', today));
+        lines.push('\n');
+      }
     }
 
     lines.push(
       (subscription.label ? `label: ${subscription.label}\n` : '') +
         `key: ${subscription.key}\n` +
-        `offers: ${subscription.offerIds}`,
+        (type === 'company'
+          ? `companies: ${subscription.offerIds}`
+          : `offers: ${subscription.offerIds}`),
     );
 
     const message = lines.join('\n');
@@ -534,6 +638,235 @@ export class BotService implements OnModuleInit {
     }
   }
 
+  private async fetchCompanyStats(
+    companyIds: string,
+    period: StatPeriod,
+  ): Promise<{
+    clicks: number;
+    uniques: number;
+    spent: number;
+    regs: number;
+    conversions: number;
+    depositsSalesCount: number;
+    regToDepSalePercent: number;
+    uniqueToConvPercent: number;
+    costPerConversion: number;
+    costPerDepSale: number;
+    companyName: string | null;
+  }> {
+    if (!this.keitaroBaseUrl || !this.keitaroApiKey) {
+      this.logger.warn(
+        'KEITARO_BASE_URL/KEITARO_REPORT_URL or KEITARO_API_KEY is not configured. Returning zero stats.',
+      );
+      return {
+        clicks: 0,
+        uniques: 0,
+        spent: 0,
+        regs: 0,
+        conversions: 0,
+        depositsSalesCount: 0,
+        regToDepSalePercent: 0,
+        uniqueToConvPercent: 0,
+        costPerConversion: 0,
+        costPerDepSale: 0,
+        companyName: null,
+      };
+    }
+
+    try {
+      const tz = 'Europe/Vienna';
+      const now = new Date();
+
+      let fromDateStr: string;
+      let toDateStr: string;
+
+      if (period === 'today') {
+        const today = now;
+        const d = new Date(
+          Date.UTC(today.getFullYear(), today.getMonth(), today.getDate()),
+        );
+        fromDateStr = d.toISOString().slice(0, 10);
+        toDateStr = fromDateStr;
+      } else if (period === 'yesterday') {
+        const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+        const d = new Date(
+          Date.UTC(
+            yesterday.getFullYear(),
+            yesterday.getMonth(),
+            yesterday.getDate(),
+          ),
+        );
+        fromDateStr = d.toISOString().slice(0, 10);
+        toDateStr = fromDateStr;
+      } else {
+        fromDateStr = '2015-01-01';
+        const d = new Date(
+          Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()),
+        );
+        toDateStr = d.toISOString().slice(0, 10);
+      }
+
+      const range = {
+        from: `${fromDateStr} 00:00`,
+        to: `${toDateStr} 23:59`,
+        timezone: tz,
+      };
+
+      const dimensions = ['day', 'campaign', 'campaign_id', 'offer', 'offer_id'];
+      const measures = [
+        'clicks',
+        'visitors',
+        'revenue',
+        'cost',
+        'sales',
+        'conversions',
+        'deposits',
+        'regs',
+      ];
+
+      const companyIdList = companyIds
+        .split(',')
+        .map((id) => id.trim())
+        .filter(Boolean);
+
+      const filters: any = {
+        AND: [],
+      };
+
+      if (companyIdList.length > 0) {
+        filters.AND.push({
+          name: 'campaign_id',
+          operator: 'IN_LIST',
+          expression: companyIdList,
+        });
+      }
+
+      const payload = {
+        range,
+        dimensions,
+        measures,
+        filters,
+        sort: [],
+        limit: 1000,
+        offset: 0,
+        summary: true,
+        extended: false,
+      };
+
+      const url = `${this.keitaroBaseUrl.replace(/\/$/, '')}/report/build`;
+
+      this.logger.debug?.(
+        `Keitaro company request url=${url} payload=${JSON.stringify(payload)}`,
+      );
+
+      const response = await axios.post(url, payload, {
+        headers: {
+          'Api-Key': this.keitaroApiKey,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const data = response.data || {};
+      const rows: any[] = Array.isArray(data.rows) ? data.rows : [];
+
+      let clicks = 0;
+      let uniques = 0;
+      let cost = 0;
+      let regs = 0;
+      let conversions = 0;
+      let deposits = 0;
+      let sales = 0;
+      let companyName: string | null = null;
+
+      for (const row of rows) {
+        clicks += Number(row.clicks ?? 0);
+        uniques += Number(row.visitors ?? 0);
+        cost += Number(row.cost ?? 0);
+        regs += Number(row.regs ?? 0);
+        conversions += Number(row.conversions ?? 0);
+        deposits += Number(row.deposits ?? 0);
+        sales += Number(row.sales ?? 0);
+        if (!companyName && row.campaign) {
+          companyName = String(row.campaign);
+        }
+      }
+
+      const depositsSalesCount = deposits + sales;
+      const spent = Math.round((cost + Number.EPSILON) * 100) / 100;
+
+      const regToDepSalePercent =
+        regs > 0
+          ? Math.round(
+              ((depositsSalesCount / regs) * 100 + Number.EPSILON) * 100,
+            ) / 100
+          : 0;
+
+      const uniqueToConvPercent =
+        uniques > 0
+          ? Math.round(
+              ((conversions / uniques) * 100 + Number.EPSILON) * 100,
+            ) / 100
+          : 0;
+
+      const costPerConversion =
+        conversions > 0
+          ? Math.round((cost / conversions + Number.EPSILON) * 100) / 100
+          : 0;
+
+      const costPerDepSale =
+        depositsSalesCount > 0
+          ? Math.round(
+              (cost / depositsSalesCount + Number.EPSILON) * 100,
+            ) / 100
+          : 0;
+
+      return {
+        clicks,
+        uniques,
+        spent,
+        regs,
+        conversions,
+        depositsSalesCount,
+        regToDepSalePercent,
+        uniqueToConvPercent,
+        costPerConversion,
+        costPerDepSale,
+        companyName,
+      };
+    } catch (error: any) {
+      if (error.response) {
+        this.logger.error(
+          `Failed to fetch Keitaro company stats: ${error.response.status}`,
+        );
+        this.logger.error(
+          `Keitaro company response body: ${JSON.stringify(
+            error.response.data,
+            null,
+            2,
+          )}`,
+        );
+      } else {
+        this.logger.error(
+          'Failed to fetch Keitaro company stats',
+          error as Error,
+        );
+      }
+      return {
+        clicks: 0,
+        uniques: 0,
+        spent: 0,
+        regs: 0,
+        conversions: 0,
+        depositsSalesCount: 0,
+        regToDepSalePercent: 0,
+        uniqueToConvPercent: 0,
+        costPerConversion: 0,
+        costPerDepSale: 0,
+        companyName: null,
+      };
+    }
+  }
+
   async getCompanyStats(companyIds: string[]): Promise<
     {
       companyId: string;
@@ -548,7 +881,7 @@ export class BotService implements OnModuleInit {
         uniqueToConvPercent: number;
         costPerConversion: number;
         costPerDepSale: number;
-        offerName: string | null;
+        companyName: string | null;
       };
       yesterday: {
         clicks: number;
@@ -561,7 +894,7 @@ export class BotService implements OnModuleInit {
         uniqueToConvPercent: number;
         costPerConversion: number;
         costPerDepSale: number;
-        offerName: string | null;
+        companyName: string | null;
       };
       today: {
         clicks: number;
@@ -574,7 +907,7 @@ export class BotService implements OnModuleInit {
         uniqueToConvPercent: number;
         costPerConversion: number;
         costPerDepSale: number;
-        offerName: string | null;
+        companyName: string | null;
       };
     }[]
   > {
@@ -588,16 +921,52 @@ export class BotService implements OnModuleInit {
 
     const results: {
       companyId: string;
-      all: Awaited<ReturnType<typeof this.fetchOfferStats>>;
-      yesterday: Awaited<ReturnType<typeof this.fetchOfferStats>>;
-      today: Awaited<ReturnType<typeof this.fetchOfferStats>>;
+      all: {
+        clicks: number;
+        uniques: number;
+        spent: number;
+        regs: number;
+        conversions: number;
+        depositsSalesCount: number;
+        regToDepSalePercent: number;
+        uniqueToConvPercent: number;
+        costPerConversion: number;
+        costPerDepSale: number;
+        companyName: string | null;
+      };
+      yesterday: {
+        clicks: number;
+        uniques: number;
+        spent: number;
+        regs: number;
+        conversions: number;
+        depositsSalesCount: number;
+        regToDepSalePercent: number;
+        uniqueToConvPercent: number;
+        costPerConversion: number;
+        costPerDepSale: number;
+        companyName: string | null;
+      };
+      today: {
+        clicks: number;
+        uniques: number;
+        spent: number;
+        regs: number;
+        conversions: number;
+        depositsSalesCount: number;
+        regToDepSalePercent: number;
+        uniqueToConvPercent: number;
+        costPerConversion: number;
+        costPerDepSale: number;
+        companyName: string | null;
+      };
     }[] = [];
 
     for (const id of uniqueIds) {
       const [all, yesterday, today] = await Promise.all([
-        this.fetchOfferStats(id, 'all'),
-        this.fetchOfferStats(id, 'yesterday'),
-        this.fetchOfferStats(id, 'today'),
+        this.fetchCompanyStats(id, 'all'),
+        this.fetchCompanyStats(id, 'yesterday'),
+        this.fetchCompanyStats(id, 'today'),
       ]);
       results.push({
         companyId: id,

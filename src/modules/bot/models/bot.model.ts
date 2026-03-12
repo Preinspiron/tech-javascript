@@ -40,6 +40,15 @@ export class BotSubscription extends Model {
   })
   label: string | null;
 
+  @AllowNull(false)
+  @Column({
+    type: DataType.STRING,
+    allowNull: false,
+    defaultValue: 'offer',
+    comment: "Key type: 'offer' or 'company'",
+  })
+  type: string;
+
   @AllowNull(true)
   @Column({
     type: DataType.INTEGER,
