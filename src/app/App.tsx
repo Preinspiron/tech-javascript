@@ -121,7 +121,7 @@ export default function App() {
   );
 
   return (
-    <div className="app">
+    <>
       <Header onMenuClick={() => setMenuOpen((v) => !v)} />
       <Menu
         open={menuOpen}
@@ -175,6 +175,6 @@ export default function App() {
         onClose={() => setHistoryOpen(false)}
         onApply={handleHistoryApply}
       />
-    </div>
+    </>
   );
 }

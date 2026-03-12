@@ -9,7 +9,7 @@
     "build": "nest build && vite build",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "npx sequelize-cli db:migrate && node dist/src/main",
-    "start:dev": "NODE_ENV=development nest start --watch",
+    "start:dev": "NODE_ENV=development vite dev && nest start --watch",
     "start:debug": "NODE_ENV=development nest start --debug --watch",
     "start:prod": "NODE_ENV=production npx sequelize-cli db:migrate && node dist/src/main",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
