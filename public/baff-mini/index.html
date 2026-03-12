@@ -203,13 +203,6 @@
       .stat-label {
         color: #9ca3af;
       }
-      .meta {
-        margin-top: 10px;
-        border-top: 1px solid #1f2937;
-        padding-top: 8px;
-        font-size: 11px;
-        color: #9ca3af;
-      }
       .error {
         margin-top: 6px;
         font-size: 11px;
@@ -269,10 +262,12 @@
         text-decoration: underline;
       }
       .intro-image {
-        margin-top: 8px;
+        margin: 8px auto 0;
         border-radius: 16px;
         overflow: hidden;
         border: 1px solid #1f2937;
+        width: 50%;
+        max-width: 200px;
       }
       .intro-image img {
         display: block;
@@ -312,21 +307,82 @@
         font-size: 11px;
         color: #6b7280;
       }
-      .history-item {
-        padding: 6px 12px;
-        font-size: 12px;
-        color: #e5e7eb;
+      .history-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(15, 23, 42, 0.92);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 40;
+      }
+      .history-modal {
+        width: 100%;
+        max-width: 420px;
+        max-height: 80vh;
+        background: #020617;
+        border-radius: 16px;
+        border: 1px solid #1f2937;
+        padding: 12px 12px 14px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .history-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 4px;
+      }
+      .history-title {
+        font-size: 13px;
+        font-weight: 600;
+      }
+      .history-close {
+        font-size: 18px;
         cursor: pointer;
+        color: #9ca3af;
+      }
+      .history-list {
+        overflow-y: auto;
+        padding-top: 4px;
+      }
+      .history-item {
+        padding: 8px 10px;
+        border-radius: 10px;
+        border: 1px solid #1f2937;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 6px;
+      }
+      .history-item-main {
         display: flex;
         flex-direction: column;
         gap: 2px;
-      }
-      .history-item:hover {
-        background: #0b1120;
+        font-size: 12px;
+        color: #e5e7eb;
       }
       .history-meta {
         font-size: 11px;
         color: #9ca3af;
+      }
+      .history-copy-btn {
+        min-width: 32px;
+        height: 32px;
+        border-radius: 999px;
+        border: 1px solid #1f2937;
+        background: #020617;
+        color: #9ca3af;
+        font-size: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+      }
+      .history-item:hover {
+        border-color: #22c55e;
       }
     </style>
   </head>
@@ -346,6 +402,8 @@
           class="menu-popup"
           style="display: none"
         >
+          <div class="menu-item" id="menuHome">Home</div>
+          <div class="menu-item" id="menuHistory">History</div>
           <div class="menu-item" id="menuSupport">BAFF support</div>
         </div>
       </div>
@@ -375,7 +433,7 @@
             >
           </div>
           <div class="intro-image">
-            <img src="/snoop.webp" alt="BAFF" />
+            <img src="snoop.webp" alt="BAFF" />
           </div>
           <button id="introContinueBtn">Continue</button>
         </div>
@@ -410,16 +468,11 @@
                 placeholder="Paste offer key"
                 autocomplete="off"
               />
-              <button
-                type="button"
-                class="reset-btn"
-                id="resetOfferKeyBtn"
-              >
+              <button type="button" class="reset-btn" id="resetOfferKeyBtn">
                 Reset
               </button>
             </div>
           </div>
-          <button id="loadOfferBtn">Load stats</button>
         </div>
 
         <div id="companiesPanel" style="display: none">
@@ -433,16 +486,11 @@
                 placeholder="Paste company key"
                 autocomplete="off"
               />
-              <button
-                type="button"
-                class="reset-btn"
-                id="resetCompanyKeyBtn"
-              >
+              <button type="button" class="reset-btn" id="resetCompanyKeyBtn">
                 Reset
               </button>
             </div>
           </div>
-          <button id="loadCompanyBtn">Load stats</button>
         </div>
 
         <div id="error" class="error" style="display: none"></div>
@@ -450,11 +498,19 @@
         <div id="content" style="display: none">
           <div class="tabs" id="tabs"></div>
           <div class="periods" id="periods"></div>
-          <div class="meta" id="meta"></div>
         </div>
 
         <div id="empty" class="empty">
           Enter key and tap "Load stats".
+        </div>
+      </div>
+      <div class="history-overlay" id="historyOverlay">
+        <div class="history-modal">
+          <div class="history-header">
+            <div class="history-title">Keys history</div>
+            <div class="history-close" id="historyClose">×</div>
+          </div>
+          <div class="history-list" id="historyList"></div>
         </div>
       </div>
     </div>
@@ -475,18 +531,20 @@
 
       const offerInput = document.getElementById('offerKey');
       const companyInput = document.getElementById('companyKey');
-      const loadOfferBtn = document.getElementById('loadOfferBtn');
-      const loadCompanyBtn = document.getElementById('loadCompanyBtn');
 
       const tabsEl = document.getElementById('tabs');
       const periodsEl = document.getElementById('periods');
-      const metaEl = document.getElementById('meta');
       const errorEl = document.getElementById('error');
       const contentEl = document.getElementById('content');
       const emptyEl = document.getElementById('empty');
       const menuButton = document.getElementById('menuButton');
       const menuPopup = document.getElementById('menuPopup');
+      const menuHome = document.getElementById('menuHome');
+      const menuHistory = document.getElementById('menuHistory');
       const menuSupport = document.getElementById('menuSupport');
+      const historyOverlay = document.getElementById('historyOverlay');
+      const historyList = document.getElementById('historyList');
+      const historyClose = document.getElementById('historyClose');
       const resetOfferKeyBtn = document.getElementById('resetOfferKeyBtn');
       const resetCompanyKeyBtn = document.getElementById('resetCompanyKeyBtn');
 
@@ -641,15 +699,6 @@
         periodsEl.appendChild(formatBlock('Yesterday', active.yesterday));
         periodsEl.appendChild(formatBlock('Today', active.today));
 
-        if (state.mode === 'offers') {
-          metaEl.textContent = `offer: ${active.offerId}${
-            state.currentLabel ? ` • label: ${state.currentLabel}` : ''
-          }`;
-        } else {
-          metaEl.textContent = `company: ${active.companyId}${
-            state.currentLabel ? ` • label: ${state.currentLabel}` : ''
-          }`;
-        }
       }
 
       async function loadOfferStats() {
@@ -660,7 +709,6 @@
           return;
         }
         errorEl.style.display = 'none';
-        loadOfferBtn.disabled = true;
 
         try {
           const params = new URLSearchParams({ key: raw });
@@ -678,8 +726,6 @@
         } catch (e) {
           errorEl.textContent = 'Failed to load offer stats. Please check key.';
           errorEl.style.display = 'block';
-        } finally {
-          loadOfferBtn.disabled = false;
         }
       }
 
@@ -691,7 +737,6 @@
           return;
         }
         errorEl.style.display = 'none';
-        loadCompanyBtn.disabled = true;
 
         try {
           const params = new URLSearchParams({ key: raw });
@@ -712,8 +757,6 @@
           errorEl.textContent =
             'Failed to load company stats. Please check key.';
           errorEl.style.display = 'block';
-        } finally {
-          loadCompanyBtn.disabled = false;
         }
       }
 
@@ -772,8 +815,17 @@
         render();
       });
 
-      loadOfferBtn.addEventListener('click', loadOfferStats);
-      loadCompanyBtn.addEventListener('click', loadCompanyStats);
+      offerInput.addEventListener('keyup', (e) => {
+        if (e.key === 'Enter') {
+          loadOfferStats();
+        }
+      });
+
+      companyInput.addEventListener('keyup', (e) => {
+        if (e.key === 'Enter') {
+          loadCompanyStats();
+        }
+      });
 
       resetOfferKeyBtn.addEventListener('click', () => {
         offerInput.value = '';
@@ -800,6 +852,7 @@
           !menuPopup.contains(e.target)
         ) {
           menuPopup.style.display = 'none';
+          historyOverlay.style.display = 'none';
         }
       });
 
@@ -817,21 +870,13 @@
           list = [];
         }
 
-        // clear everything except first item (support)
-        while (menuPopup.children.length > 1) {
-          menuPopup.removeChild(menuPopup.lastChild);
-        }
-
-        const title = document.createElement('div');
-        title.className = 'menu-section-title';
-        title.textContent = 'Keys history';
-        menuPopup.appendChild(title);
+        historyList.innerHTML = '';
 
         if (!list.length) {
           const empty = document.createElement('div');
           empty.className = 'history-empty';
           empty.textContent = 'No keys yet';
-          menuPopup.appendChild(empty);
+          historyList.appendChild(empty);
           return;
         }
 
@@ -839,24 +884,95 @@
           const el = document.createElement('div');
           el.className = 'history-item';
           const typeLabel = item.type === 'company' ? 'Company' : 'Offer';
-          el.innerHTML = `<div>${item.key}</div><div class="history-meta">${typeLabel}${
+          const main = document.createElement('div');
+          main.className = 'history-item-main';
+          main.innerHTML = `<div>${item.key}</div><div class="history-meta">${typeLabel}${
             item.label ? ` • ${item.label}` : ''
           }</div>`;
-          el.addEventListener('click', async () => {
-            try {
-              await navigator.clipboard.writeText(item.key);
-            } catch (e) {
-              // ignore
+
+          main.addEventListener('click', async () => {
+            // применить ключ сразу
+            if (item.type === 'offer') {
+              offerInput.value = item.key;
+              await loadOfferStats();
+              state.mode = 'offers';
+              offersTab.classList.add('active');
+              companiesTab.classList.remove('active');
+              offersPanel.style.display = 'block';
+              companiesPanel.style.display = 'none';
+            } else {
+              companyInput.value = item.key;
+              await loadCompanyStats();
+              state.mode = 'companies';
+              companiesTab.classList.add('active');
+              offersTab.classList.remove('active');
+              offersPanel.style.display = 'none';
+              companiesPanel.style.display = 'block';
             }
             menuPopup.style.display = 'none';
+            historyOverlay.style.display = 'none';
           });
-          menuPopup.appendChild(el);
+
+          const copyBtn = document.createElement('button');
+          copyBtn.type = 'button';
+          copyBtn.className = 'history-copy-btn';
+          copyBtn.textContent = '⧉';
+          copyBtn.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            try {
+              await navigator.clipboard.writeText(item.key);
+            } catch (err) {
+              // ignore
+            }
+          });
+
+          el.appendChild(main);
+          el.appendChild(copyBtn);
+          historyList.appendChild(el);
         });
       }
+
+      menuHome.addEventListener('click', () => {
+        // Переход к самому первому экрану с анимацией и табами
+        introScreen.style.display = 'block';
+        mainScreen.style.display = 'block';
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        menuPopup.style.display = 'none';
+        historyOverlay.style.display = 'none';
+      });
+
+      menuHistory.addEventListener('click', () => {
+        renderHistoryIntoMenu();
+        historyOverlay.style.display = 'flex';
+        menuPopup.style.display = 'none';
+      });
+
+      historyClose.addEventListener('click', () => {
+        historyOverlay.style.display = 'none';
+      });
+
+      historyOverlay.addEventListener('click', (e) => {
+        if (e.target === historyOverlay) {
+          historyOverlay.style.display = 'none';
+        }
+      });
 
       document.addEventListener('DOMContentLoaded', () => {
         loadInitialKeys();
         showIntroOrMain();
+        // авто‑загрузка, если ключ уже есть
+        const offerKey = (offerInput.value || '').trim();
+        const companyKey = (companyInput.value || '').trim();
+        if (offerKey) {
+          loadOfferStats();
+        } else if (companyKey) {
+          state.mode = 'companies';
+          companiesTab.classList.add('active');
+          offersTab.classList.remove('active');
+          offersPanel.style.display = 'none';
+          companiesPanel.style.display = 'block';
+          loadCompanyStats();
+        }
       });
     </script>
   </body>
