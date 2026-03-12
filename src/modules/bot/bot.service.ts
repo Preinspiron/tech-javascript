@@ -537,9 +537,45 @@ export class BotService implements OnModuleInit {
   async getCompanyStats(companyIds: string[]): Promise<
     {
       companyId: string;
-      all: Awaited<ReturnType<typeof this.fetchOfferStats>>;
-      yesterday: Awaited<ReturnType<typeof this.fetchOfferStats>>;
-      today: Awaited<ReturnType<typeof this.fetchOfferStats>>;
+      all: {
+        clicks: number;
+        uniques: number;
+        spent: number;
+        regs: number;
+        conversions: number;
+        depositsSalesCount: number;
+        regToDepSalePercent: number;
+        uniqueToConvPercent: number;
+        costPerConversion: number;
+        costPerDepSale: number;
+        offerName: string | null;
+      };
+      yesterday: {
+        clicks: number;
+        uniques: number;
+        spent: number;
+        regs: number;
+        conversions: number;
+        depositsSalesCount: number;
+        regToDepSalePercent: number;
+        uniqueToConvPercent: number;
+        costPerConversion: number;
+        costPerDepSale: number;
+        offerName: string | null;
+      };
+      today: {
+        clicks: number;
+        uniques: number;
+        spent: number;
+        regs: number;
+        conversions: number;
+        depositsSalesCount: number;
+        regToDepSalePercent: number;
+        uniqueToConvPercent: number;
+        costPerConversion: number;
+        costPerDepSale: number;
+        offerName: string | null;
+      };
     }[]
   > {
     const uniqueIds = Array.from(
