@@ -20,5 +20,6 @@
     "paths": {
       "@helpers/*":["./src/helpers/*"]
     }
-  }
+  },
+  "exclude": ["node_modules", "dist", "src/app"]
 }

@@ -6,7 +6,7 @@
   "private": true,
   "license": "UNLICENSED",
   "scripts": {
-    "build": "nest build",
+    "build": "nest build && vite build",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": " npx sequelize-cli db:migrate && nest start",
     "start:dev": "NODE_ENV=development nest start --watch",
@@ -21,6 +21,8 @@
     "migrate": "sequelize-cli db:migrate --env production"
   },
   "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
     "@nestjs/common": "^10.0.0",
     "@nestjs/config": "^3.1.1",
     "@nestjs/core": "^10.0.0",
@@ -46,6 +48,10 @@
     "sequelize-typescript": "^2.1.6"
   },
   "devDependencies": {
+    "@types/react": "^18.2.0",
+    "@types/react-dom": "^18.2.0",
+    "@vitejs/plugin-react": "^4.2.0",
+    "vite": "^5.0.0",
     "@nestjs/cli": "^10.0.0",
     "@nestjs/schematics": "^10.0.0",
     "@nestjs/testing": "^10.0.0",
