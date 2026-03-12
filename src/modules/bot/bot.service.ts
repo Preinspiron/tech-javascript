@@ -13,7 +13,9 @@ type ChatState =
   | { state: 'awaiting_key' }
   | { state: 'awaiting_stop_key' }
   | { state: 'awaiting_offer_config' }
-  | { state: 'awaiting_company_config' };
+  | { state: 'awaiting_company_config' }
+  | { state: 'awaiting_update_key' }
+  | { state: 'awaiting_update_config'; key: string };
 
 @Injectable()
 export class BotService implements OnModuleInit {
@@ -119,8 +121,7 @@ export class BotService implements OnModuleInit {
         const chatId = msg.chat.id;
         const providedPassword = match && match[1] ? match[1].trim() : '';
         const expectedPassword =
-          this.configService.get<string>('BOT_SETUP_PASSWORD') ||
-          'Samtron123';
+          this.configService.get<string>('BOT_SETUP_PASSWORD') || 'Samtron123';
 
         if (!providedPassword || providedPassword !== expectedPassword) {
           await this.bot!.sendMessage(chatId, 'Access denied.');
@@ -149,6 +150,15 @@ export class BotService implements OnModuleInit {
         chatId,
         'Send the key for which you want to stop stats in this chat.\n' +
           'If you want to remove all keys from this chat — send ALL.',
+      );
+    });
+
+    this.bot.onText(/^\/update(?:@\w+)?$/, async (msg) => {
+      const chatId = msg.chat.id;
+      this.chatStates.set(chatId, { state: 'awaiting_update_key' });
+      await this.bot!.sendMessage(
+        chatId,
+        'Send the key for which you want to update the ID list.',
       );
     });
 
@@ -207,8 +217,92 @@ export class BotService implements OnModuleInit {
       } else if (state.state === 'awaiting_stop_key') {
         await this.handleStopForChat(chatId, text);
         this.chatStates.set(chatId, { state: 'idle' });
+      } else if (state.state === 'awaiting_update_key') {
+        await this.handleUpdateKeyForChat(chatId, text);
+      } else if (state.state === 'awaiting_update_config') {
+        await this.handleUpdateConfigForChat(chatId, text, state.key);
       }
     });
+  }
+
+  private async handleUpdateKeyForChat(chatId: number, key: string): Promise<void> {
+    if (!this.bot) return;
+    const trimmed = key.trim();
+    const subscription = await this.botSubscriptionModel.findOne({
+      where: { key: trimmed },
+    });
+    if (!subscription) {
+      await this.bot.sendMessage(chatId, 'Key not found.');
+      this.chatStates.set(chatId, { state: 'idle' });
+      return;
+    }
+    const subType = (subscription as any).type || 'offer';
+    this.chatStates.set(chatId, { state: 'awaiting_update_config', key: trimmed });
+    if (subType === 'offer') {
+      await this.bot.sendMessage(
+        chatId,
+        'Send new offer IDs in format: offerId1,offerId2 Label\nExample: 149,150,160 BETFM',
+      );
+    } else {
+      await this.bot.sendMessage(
+        chatId,
+        'Send new company IDs in format: companyId1,companyId2 Label\nExample: 10,11,12 BrandX',
+      );
+    }
+  }
+
+  private async handleUpdateConfigForChat(
+    chatId: number,
+    text: string,
+    key: string,
+  ): Promise<void> {
+    if (!this.bot) return;
+    this.chatStates.set(chatId, { state: 'idle' });
+
+    const subscription = await this.botSubscriptionModel.findOne({
+      where: { key },
+    });
+    if (!subscription) {
+      await this.bot.sendMessage(chatId, 'Key not found.');
+      return;
+    }
+
+    const parts = text.trim().split(/\s+/);
+    const idsPart = parts[0];
+    const labelPart = parts.slice(1).join(' ');
+
+    if (!idsPart) {
+      const usage =
+        (subscription as any).type === 'company'
+          ? 'companyId1,companyId2 Label'
+          : 'offerId1,offerId2 Label';
+      await this.bot.sendMessage(chatId, `Invalid format. Use: ${usage}`);
+      return;
+    }
+
+    const ids = idsPart
+      .split(',')
+      .map((id) => id.trim())
+      .filter(Boolean);
+    if (ids.length === 0) {
+      await this.bot.sendMessage(chatId, 'Specify at least one ID.');
+      return;
+    }
+
+    subscription.offerIds = ids.join(',');
+    subscription.label = labelPart || null;
+    await subscription.save();
+
+    await this.bot.sendMessage(
+      chatId,
+      'Key updated.\n\n' +
+        'Key:\n```\n' + key + '\n```\n' +
+        ((subscription as any).type === 'offer'
+          ? `Offers: ${ids.join(', ')}\n`
+          : `Companies: ${ids.join(', ')}\n`) +
+        (subscription.label ? `Label: ${subscription.label}\n` : ''),
+      { parse_mode: 'Markdown' },
+    );
   }
 
   private async handleSetupForChat(
@@ -262,22 +356,20 @@ export class BotService implements OnModuleInit {
     await this.bot.sendMessage(
       chatId,
       'Key created.\n\n' +
-        `Key: '''${key}'''\n` +
+        'Key:\n```\n' + key + '\n```\n' +
         (type === 'offer'
           ? `Offers: ${ids.join(', ')}\n`
           : `Companies: ${ids.join(', ')}\n`) +
         (labelPart ? `Label: ${labelPart}\n` : '') +
         `Daily stats will be sent around ${this.dailySendHour}:00 (server time).\n\n` +
         'To get stats immediately — send /stat and then this key.',
+      { parse_mode: 'Markdown' },
     );
 
     this.lastKeys.set(chatId, key);
   }
 
-  private async handleKeyForChat(
-    chatId: number,
-    key: string,
-  ): Promise<void> {
+  private async handleKeyForChat(chatId: number, key: string): Promise<void> {
     if (!this.bot) {
       return;
     }
@@ -398,7 +490,7 @@ export class BotService implements OnModuleInit {
 
     lines.push(
       (subscription.label ? `label: ${subscription.label}\n` : '') +
-        `key: '''${subscription.key}'''\n` +
+        'key:\n```\n' + subscription.key + '\n```\n' +
         (type === 'company'
           ? `companies: ${subscription.offerIds}`
           : `offers: ${subscription.offerIds}`),
@@ -406,7 +498,7 @@ export class BotService implements OnModuleInit {
 
     const message = lines.join('\n');
 
-    await this.bot.sendMessage(chatId, message);
+    await this.bot.sendMessage(chatId, message, { parse_mode: 'Markdown' });
 
     this.lastKeys.set(chatId, subscription.key);
   }
@@ -487,7 +579,13 @@ export class BotService implements OnModuleInit {
       };
 
       // Максимально близко к твоему Google Apps Script
-      const dimensions = ['day', 'campaign', 'campaign_id', 'offer', 'offer_id'];
+      const dimensions = [
+        'day',
+        'campaign',
+        'campaign_id',
+        'offer',
+        'offer_id',
+      ];
       const measures = [
         'clicks',
         'visitors',
@@ -578,20 +676,18 @@ export class BotService implements OnModuleInit {
 
       const uniqueToConvPercent =
         uniques > 0
-          ? Math.round(
-              ((conversions / uniques) * 100 + Number.EPSILON) * 100,
-            ) / 100
+          ? Math.round(((conversions / uniques) * 100 + Number.EPSILON) * 100) /
+            100
           : 0;
 
       const costPerConversion =
         conversions > 0
-          ? Math.round(((cost / conversions + Number.EPSILON) * 100)) / 100
+          ? Math.round((cost / conversions + Number.EPSILON) * 100) / 100
           : 0;
 
       const costPerDepSale =
         depositsSalesCount > 0
-          ? Math.round(((cost / depositsSalesCount + Number.EPSILON) * 100)) /
-            100
+          ? Math.round((cost / depositsSalesCount + Number.EPSILON) * 100) / 100
           : 0;
 
       return {
@@ -712,7 +808,13 @@ export class BotService implements OnModuleInit {
         timezone: tz,
       };
 
-      const dimensions = ['day', 'campaign', 'campaign_id', 'offer', 'offer_id'];
+      const dimensions = [
+        'day',
+        'campaign',
+        'campaign_id',
+        'offer',
+        'offer_id',
+      ];
       const measures = [
         'clicks',
         'visitors',
@@ -803,9 +905,8 @@ export class BotService implements OnModuleInit {
 
       const uniqueToConvPercent =
         uniques > 0
-          ? Math.round(
-              ((conversions / uniques) * 100 + Number.EPSILON) * 100,
-            ) / 100
+          ? Math.round(((conversions / uniques) * 100 + Number.EPSILON) * 100) /
+            100
           : 0;
 
       const costPerConversion =
@@ -815,9 +916,7 @@ export class BotService implements OnModuleInit {
 
       const costPerDepSale =
         depositsSalesCount > 0
-          ? Math.round(
-              (cost / depositsSalesCount + Number.EPSILON) * 100,
-            ) / 100
+          ? Math.round((cost / depositsSalesCount + Number.EPSILON) * 100) / 100
           : 0;
 
       return {
@@ -912,11 +1011,7 @@ export class BotService implements OnModuleInit {
     }[]
   > {
     const uniqueIds = Array.from(
-      new Set(
-        companyIds
-          .map((id) => id.trim())
-          .filter(Boolean),
-      ),
+      new Set(companyIds.map((id) => id.trim()).filter(Boolean)),
     );
 
     const results: {
@@ -979,10 +1074,7 @@ export class BotService implements OnModuleInit {
     return results;
   }
 
-  private async handleStopForChat(
-    chatId: number,
-    text: string,
-  ): Promise<void> {
+  private async handleStopForChat(chatId: number, text: string): Promise<void> {
     if (!this.bot) {
       return;
     }
@@ -1095,4 +1187,3 @@ export class BotService implements OnModuleInit {
     }, delay);
   }
 }
-
