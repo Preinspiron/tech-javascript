@@ -52,9 +52,10 @@
         color: #020617;
       }
       .logo-title {
-        font-weight: 600;
-        letter-spacing: 0.03em;
-        font-size: 16px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        font-size: 20px;
+        text-transform: uppercase;
       }
       .muted {
         font-size: 11px;
@@ -267,6 +268,66 @@
       .intro-link:hover {
         text-decoration: underline;
       }
+      .intro-image {
+        margin-top: 8px;
+        border-radius: 16px;
+        overflow: hidden;
+        border: 1px solid #1f2937;
+      }
+      .intro-image img {
+        display: block;
+        width: 100%;
+        height: auto;
+      }
+      .key-row {
+        display: flex;
+        gap: 6px;
+        align-items: center;
+      }
+      .key-input {
+        flex: 1;
+      }
+      .reset-btn {
+        width: auto;
+        padding: 7px 10px;
+        font-size: 11px;
+        border-radius: 999px;
+        background: #020617;
+        color: #9ca3af;
+        border: 1px solid #1f2937;
+      }
+      .reset-btn:hover {
+        border-color: #22c55e;
+        color: #ecfdf5;
+      }
+      .menu-section-title {
+        padding: 4px 12px;
+        font-size: 11px;
+        color: #6b7280;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+      }
+      .history-empty {
+        padding: 6px 12px;
+        font-size: 11px;
+        color: #6b7280;
+      }
+      .history-item {
+        padding: 6px 12px;
+        font-size: 12px;
+        color: #e5e7eb;
+        cursor: pointer;
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+      }
+      .history-item:hover {
+        background: #0b1120;
+      }
+      .history-meta {
+        font-size: 11px;
+        color: #9ca3af;
+      }
     </style>
   </head>
   <body>
@@ -313,6 +374,9 @@
               >BAFF support</a
             >
           </div>
+          <div class="intro-image">
+            <img src="/snoop.webp" alt="BAFF" />
+          </div>
           <button id="introContinueBtn">Continue</button>
         </div>
       </div>
@@ -338,12 +402,22 @@
         <div id="offersPanel">
           <div class="field">
             <label for="offerKey">Offer key</label>
-            <input
-              id="offerKey"
-              type="text"
-              placeholder="Paste offer key"
-              autocomplete="off"
-            />
+            <div class="key-row">
+              <input
+                id="offerKey"
+                class="key-input"
+                type="text"
+                placeholder="Paste offer key"
+                autocomplete="off"
+              />
+              <button
+                type="button"
+                class="reset-btn"
+                id="resetOfferKeyBtn"
+              >
+                Reset
+              </button>
+            </div>
           </div>
           <button id="loadOfferBtn">Load stats</button>
         </div>
@@ -351,12 +425,22 @@
         <div id="companiesPanel" style="display: none">
           <div class="field">
             <label for="companyKey">Company key</label>
-            <input
-              id="companyKey"
-              type="text"
-              placeholder="Paste company key"
-              autocomplete="off"
-            />
+            <div class="key-row">
+              <input
+                id="companyKey"
+                class="key-input"
+                type="text"
+                placeholder="Paste company key"
+                autocomplete="off"
+              />
+              <button
+                type="button"
+                class="reset-btn"
+                id="resetCompanyKeyBtn"
+              >
+                Reset
+              </button>
+            </div>
           </div>
           <button id="loadCompanyBtn">Load stats</button>
         </div>
@@ -403,6 +487,8 @@
       const menuButton = document.getElementById('menuButton');
       const menuPopup = document.getElementById('menuPopup');
       const menuSupport = document.getElementById('menuSupport');
+      const resetOfferKeyBtn = document.getElementById('resetOfferKeyBtn');
+      const resetCompanyKeyBtn = document.getElementById('resetCompanyKeyBtn');
 
       let state = {
         mode: 'offers', // 'offers' | 'companies'
@@ -412,6 +498,53 @@
         activeCompanyId: null,
         currentLabel: null,
       };
+
+      const STORAGE_KEYS = {
+        offerKey: 'baff_offer_key',
+        companyKey: 'baff_company_key',
+        history: 'baff_keys_history',
+      };
+
+      function saveKeyToStorage(type, key, label) {
+        try {
+          if (type === 'offer') {
+            localStorage.setItem(STORAGE_KEYS.offerKey, key);
+          } else if (type === 'company') {
+            localStorage.setItem(STORAGE_KEYS.companyKey, key);
+          }
+
+          // history
+          const raw = localStorage.getItem(STORAGE_KEYS.history) || '[]';
+          const list = JSON.parse(raw);
+          const now = new Date().toISOString();
+          const item = { type, key, label: label || null, ts: now };
+          const filtered = list.filter((x) => x.key !== key);
+          filtered.unshift(item);
+          const limited = filtered.slice(0, 20);
+          localStorage.setItem(
+            STORAGE_KEYS.history,
+            JSON.stringify(limited),
+          );
+        } catch (e) {
+          // ignore storage errors
+        }
+      }
+
+      function loadInitialKeys() {
+        try {
+          const offerKey = localStorage.getItem(STORAGE_KEYS.offerKey) || '';
+          const companyKey =
+            localStorage.getItem(STORAGE_KEYS.companyKey) || '';
+          if (offerKey) {
+            offerInput.value = offerKey;
+          }
+          if (companyKey) {
+            companyInput.value = companyKey;
+          }
+        } catch (e) {
+          // ignore
+        }
+      }
 
       function formatBlock(title, s) {
         const spendInt = Math.round(s.spent);
@@ -540,6 +673,7 @@
           state.offers = data.offers || [];
           state.currentLabel = data.label || null;
           state.activeOfferId = null;
+          saveKeyToStorage('offer', raw, data.label || null);
           render();
         } catch (e) {
           errorEl.textContent = 'Failed to load offer stats. Please check key.';
@@ -572,6 +706,7 @@
           state.companies = data.companies || [];
           state.currentLabel = data.label || null;
           state.activeCompanyId = null;
+          saveKeyToStorage('company', raw, data.label || null);
           render();
         } catch (e) {
           errorEl.textContent =
@@ -585,8 +720,9 @@
       function showIntroOrMain() {
         const seen = localStorage.getItem('baff_intro_seen') === '1';
         if (seen) {
-          introScreen.style.display = 'none';
+          introScreen.style.display = 'block';
           mainScreen.style.display = 'block';
+          startIntroAnimation();
         } else {
           introScreen.style.display = 'block';
           mainScreen.style.display = 'none';
@@ -639,6 +775,20 @@
       loadOfferBtn.addEventListener('click', loadOfferStats);
       loadCompanyBtn.addEventListener('click', loadCompanyStats);
 
+      resetOfferKeyBtn.addEventListener('click', () => {
+        offerInput.value = '';
+        try {
+          localStorage.removeItem(STORAGE_KEYS.offerKey);
+        } catch (e) {}
+      });
+
+      resetCompanyKeyBtn.addEventListener('click', () => {
+        companyInput.value = '';
+        try {
+          localStorage.removeItem(STORAGE_KEYS.companyKey);
+        } catch (e) {}
+      });
+
       menuButton.addEventListener('click', () => {
         const isVisible = menuPopup.style.display === 'block';
         menuPopup.style.display = isVisible ? 'none' : 'block';
@@ -658,7 +808,56 @@
         menuPopup.style.display = 'none';
       });
 
-      document.addEventListener('DOMContentLoaded', showIntroOrMain);
+      function renderHistoryIntoMenu() {
+        const raw = localStorage.getItem(STORAGE_KEYS.history) || '[]';
+        let list;
+        try {
+          list = JSON.parse(raw);
+        } catch (e) {
+          list = [];
+        }
+
+        // clear everything except first item (support)
+        while (menuPopup.children.length > 1) {
+          menuPopup.removeChild(menuPopup.lastChild);
+        }
+
+        const title = document.createElement('div');
+        title.className = 'menu-section-title';
+        title.textContent = 'Keys history';
+        menuPopup.appendChild(title);
+
+        if (!list.length) {
+          const empty = document.createElement('div');
+          empty.className = 'history-empty';
+          empty.textContent = 'No keys yet';
+          menuPopup.appendChild(empty);
+          return;
+        }
+
+        list.forEach((item) => {
+          const el = document.createElement('div');
+          el.className = 'history-item';
+          const typeLabel = item.type === 'company' ? 'Company' : 'Offer';
+          el.innerHTML = `<div>${item.key}</div><div class="history-meta">${typeLabel}${
+            item.label ? ` • ${item.label}` : ''
+          }</div>`;
+          el.addEventListener('click', async () => {
+            try {
+              await navigator.clipboard.writeText(item.key);
+            } catch (e) {
+              // ignore
+            }
+            menuPopup.style.display = 'none';
+          });
+          menuPopup.appendChild(el);
+        });
+      }
+
+      document.addEventListener('DOMContentLoaded', () => {
+        loadInitialKeys();
+        showIntroOrMain();
+      });
     </script>
   </body>
 </html>

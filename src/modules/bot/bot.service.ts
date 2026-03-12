@@ -262,7 +262,7 @@ export class BotService implements OnModuleInit {
     await this.bot.sendMessage(
       chatId,
       'Key created.\n\n' +
-        `Key: ${key}\n` +
+        `Key: '''${key}'''\n` +
         (type === 'offer'
           ? `Offers: ${ids.join(', ')}\n`
           : `Companies: ${ids.join(', ')}\n`) +
@@ -398,7 +398,7 @@ export class BotService implements OnModuleInit {
 
     lines.push(
       (subscription.label ? `label: ${subscription.label}\n` : '') +
-        `key: ${subscription.key}\n` +
+        `key: '''${subscription.key}'''\n` +
         (type === 'company'
           ? `companies: ${subscription.offerIds}`
           : `offers: ${subscription.offerIds}`),
