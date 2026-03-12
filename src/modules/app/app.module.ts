@@ -31,7 +31,8 @@ import { BotModule } from '../bot/bot.module';
       load: [configurations],
     }),
     ServeStaticModule.forRoot({
-      rootPath: join(__dirname, '..', '..', 'public', 'baff-mini'),
+      // Use project root so it works both in dev (ts-node) and in dist on Render
+      rootPath: join(process.cwd(), 'public', 'baff-mini'),
       serveRoot: '/baff-mini',
     }),
     SequelizeModule.forRootAsync({
