@@ -384,6 +384,32 @@
       .history-item:hover {
         border-color: #22c55e;
       }
+      .partners {
+        margin-top: 16px;
+        padding-top: 12px;
+        border-top: 1px solid #1f2937;
+        text-align: center;
+      }
+      .partners-label {
+        font-size: 11px;
+        color: #6b7280;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        margin-bottom: 8px;
+      }
+      .partners-logos {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 20px;
+        flex-wrap: wrap;
+      }
+      .partners-logos img {
+        height: 28px;
+        width: auto;
+        object-fit: contain;
+        opacity: 0.85;
+      }
     </style>
   </head>
   <body>
@@ -436,6 +462,13 @@
             <img src="snoop.webp" alt="BAFF" />
           </div>
           <button id="introContinueBtn">Continue</button>
+          <div class="partners">
+            <div class="partners-label">Partners</div>
+            <div class="partners-logos">
+              <img src="FB.png" alt="Facebook" />
+              <img src="Google.png" alt="Google" />
+            </div>
+          </div>
         </div>
       </div>
 
@@ -795,6 +828,19 @@
         localStorage.setItem('baff_intro_seen', '1');
         introScreen.style.display = 'none';
         mainScreen.style.display = 'block';
+        // загружаем стату только после Continue
+        const offerKey = (offerInput.value || '').trim();
+        const companyKey = (companyInput.value || '').trim();
+        if (offerKey) {
+          loadOfferStats();
+        } else if (companyKey) {
+          state.mode = 'companies';
+          companiesTab.classList.add('active');
+          offersTab.classList.remove('active');
+          offersPanel.style.display = 'none';
+          companiesPanel.style.display = 'block';
+          loadCompanyStats();
+        }
       });
 
       offersTab.addEventListener('click', () => {
@@ -960,19 +1006,6 @@
       document.addEventListener('DOMContentLoaded', () => {
         loadInitialKeys();
         showIntroOrMain();
-        // авто‑загрузка, если ключ уже есть
-        const offerKey = (offerInput.value || '').trim();
-        const companyKey = (companyInput.value || '').trim();
-        if (offerKey) {
-          loadOfferStats();
-        } else if (companyKey) {
-          state.mode = 'companies';
-          companiesTab.classList.add('active');
-          offersTab.classList.remove('active');
-          offersPanel.style.display = 'none';
-          companiesPanel.style.display = 'block';
-          loadCompanyStats();
-        }
       });
     </script>
   </body>
