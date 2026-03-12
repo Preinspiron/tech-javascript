@@ -247,46 +247,60 @@ export class BotService implements OnModuleInit {
       await subscription.save();
     }
 
-    const [statsAll, statsYesterday, statsToday] = await Promise.all([
-      this.fetchOfferStats(subscription.offerIds, 'all'),
-      this.fetchOfferStats(subscription.offerIds, 'yesterday'),
-      this.fetchOfferStats(subscription.offerIds, 'today'),
-    ]);
+    const offerIds = subscription.offerIds
+      .split(',')
+      .map((id) => id.trim())
+      .filter(Boolean);
 
-    const formatBlock = (
-      title: string,
-      s: Awaited<ReturnType<typeof this.fetchOfferStats>>,
-    ) => {
-      const spendInt = Math.round(s.spent);
-      const r2d = Math.round(s.regToDepSalePercent);
-      const uniq2conv = Math.round(s.uniqueToConvPercent);
-      const costPerConv = s.costPerConversion.toFixed(2);
-      const costPerDep = s.costPerDepSale.toFixed(2);
+    const lines: string[] = [];
 
-      return (
-        `${title}:\n` +
-        `  Clicks: ${s.clicks}\n` +
-        `  Uniques: ${s.uniques}\n` +
-        `  spend: $${spendInt}\n` +
-        `  regs: ${s.regs}\n` +
-        `  deps: ${s.depositsSalesCount}\n` +
-        `  r2d: ${r2d}%\n` +
-        `  uniq2conv: ${uniq2conv}%\n` +
-        `  cost per conversion: ${costPerConv}$\n` +
-        `  cost per deposit: ${costPerDep}$\n`
-      );
-    };
+    for (const offerId of offerIds) {
+      const [all, yesterday, today] = await Promise.all([
+        this.fetchOfferStats(offerId, 'all'),
+        this.fetchOfferStats(offerId, 'yesterday'),
+        this.fetchOfferStats(offerId, 'today'),
+      ]);
 
-    const message =
-      formatBlock('All time', statsAll) +
-      '\n' +
-      formatBlock('Yesterday', statsYesterday) +
-      '\n' +
-      formatBlock('Today', statsToday) +
-      '\n' +
+      const formatBlock = (
+        prefix: string,
+        s: Awaited<ReturnType<typeof this.fetchOfferStats>>,
+      ) => {
+        const spendInt = Math.round(s.spent);
+        const r2d = Math.round(s.regToDepSalePercent);
+        const uniq2conv = Math.round(s.uniqueToConvPercent);
+        const costPerConv = s.costPerConversion.toFixed(2);
+        const costPerDep = s.costPerDepSale.toFixed(2);
+        const namePart = s.offerName ? ` ${s.offerName}` : '';
+
+        return [
+          `${prefix} -> ${offerId}${namePart}`,
+          `  Clicks: ${s.clicks}`,
+          `  Uniques: ${s.uniques}`,
+          `  spend: $${spendInt}`,
+          `  regs: ${s.regs}`,
+          `  deps: ${s.depositsSalesCount}`,
+          `  r2d: ${r2d}%`,
+          `  uniq2conv: ${uniq2conv}%`,
+          `  cost per conversion: ${costPerConv}$`,
+          `  cost per deposit: ${costPerDep}$`,
+        ].join('\n');
+      };
+
+      lines.push(formatBlock('All time', all));
+      lines.push('');
+      lines.push(formatBlock('Yesterday', yesterday));
+      lines.push('');
+      lines.push(formatBlock('Today', today));
+      lines.push('\n');
+    }
+
+    lines.push(
       (subscription.label ? `label: ${subscription.label}\n` : '') +
-      `key: ${subscription.key}\n` +
-      `offers: ${subscription.offerIds}\n`;
+        `key: ${subscription.key}\n` +
+        `offers: ${subscription.offerIds}`,
+    );
+
+    const message = lines.join('\n');
 
     await this.bot.sendMessage(chatId, message);
 
@@ -307,6 +321,7 @@ export class BotService implements OnModuleInit {
     uniqueToConvPercent: number;
     costPerConversion: number;
     costPerDepSale: number;
+    offerName: string | null;
   }> {
     if (!this.keitaroBaseUrl || !this.keitaroApiKey) {
       this.logger.warn(
@@ -323,6 +338,7 @@ export class BotService implements OnModuleInit {
         uniqueToConvPercent: 0,
         costPerConversion: 0,
         costPerDepSale: 0,
+        offerName: null,
       };
     }
 
@@ -431,6 +447,7 @@ export class BotService implements OnModuleInit {
       let conversions = 0;
       let deposits = 0;
       let sales = 0;
+      let offerName: string | null = null;
 
       for (const row of rows) {
         clicks += Number(row.clicks ?? 0);
@@ -440,6 +457,9 @@ export class BotService implements OnModuleInit {
         conversions += Number(row.conversions ?? 0);
         deposits += Number(row.deposits ?? 0);
         sales += Number(row.sales ?? 0);
+        if (!offerName && row.offer) {
+          offerName = String(row.offer);
+        }
       }
 
       const depositsSalesCount = deposits + sales;
@@ -481,6 +501,7 @@ export class BotService implements OnModuleInit {
         uniqueToConvPercent,
         costPerConversion,
         costPerDepSale,
+        offerName,
       };
     } catch (error: any) {
       if (error.response) {
@@ -508,8 +529,49 @@ export class BotService implements OnModuleInit {
         uniqueToConvPercent: 0,
         costPerConversion: 0,
         costPerDepSale: 0,
+        offerName: null,
       };
     }
+  }
+
+  async getCompanyStats(companyIds: string[]): Promise<
+    {
+      companyId: string;
+      all: Awaited<ReturnType<typeof this.fetchOfferStats>>;
+      yesterday: Awaited<ReturnType<typeof this.fetchOfferStats>>;
+      today: Awaited<ReturnType<typeof this.fetchOfferStats>>;
+    }[]
+  > {
+    const uniqueIds = Array.from(
+      new Set(
+        companyIds
+          .map((id) => id.trim())
+          .filter(Boolean),
+      ),
+    );
+
+    const results: {
+      companyId: string;
+      all: Awaited<ReturnType<typeof this.fetchOfferStats>>;
+      yesterday: Awaited<ReturnType<typeof this.fetchOfferStats>>;
+      today: Awaited<ReturnType<typeof this.fetchOfferStats>>;
+    }[] = [];
+
+    for (const id of uniqueIds) {
+      const [all, yesterday, today] = await Promise.all([
+        this.fetchOfferStats(id, 'all'),
+        this.fetchOfferStats(id, 'yesterday'),
+        this.fetchOfferStats(id, 'today'),
+      ]);
+      results.push({
+        companyId: id,
+        all,
+        yesterday,
+        today,
+      });
+    }
+
+    return results;
   }
 
   private async handleStopForChat(

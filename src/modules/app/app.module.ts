@@ -1,6 +1,8 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { SequelizeModule } from '@nestjs/sequelize';
+import { ServeStaticModule } from '@nestjs/serve-static';
+import { join } from 'path';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { UserModule } from '../user/user.module';
@@ -27,6 +29,10 @@ import { BotModule } from '../bot/bot.module';
       envFilePath:
         process.env.NODE_ENV === 'production' ? '.env' : '.local.env',
       load: [configurations],
+    }),
+    ServeStaticModule.forRoot({
+      rootPath: join(__dirname, '..', '..', 'public', 'baff-mini'),
+      serveRoot: '/baff-mini',
     }),
     SequelizeModule.forRootAsync({
       imports: [ConfigModule],

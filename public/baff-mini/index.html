@@ -1,0 +1,313 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>BAFF Stats</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI',
+          sans-serif;
+        background: #050816;
+        color: #e5e7eb;
+        display: flex;
+        justify-content: center;
+        align-items: flex-start;
+        min-height: 100vh;
+        padding: 16px;
+      }
+      .app {
+        width: 100%;
+        max-width: 420px;
+        background: #0b1120;
+        border-radius: 16px;
+        padding: 16px 16px 20px;
+        box-shadow: 0 20px 35px rgba(15, 23, 42, 0.8);
+      }
+      .header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 16px;
+      }
+      .logo {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .logo-badge {
+        width: 28px;
+        height: 28px;
+        border-radius: 999px;
+        background: linear-gradient(135deg, #22c55e, #14b8a6);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 14px;
+        color: #020617;
+      }
+      .logo-title {
+        font-weight: 600;
+        letter-spacing: 0.03em;
+        font-size: 16px;
+      }
+      .muted {
+        font-size: 11px;
+        color: #9ca3af;
+      }
+      .field {
+        margin-bottom: 10px;
+      }
+      label {
+        display: block;
+        font-size: 12px;
+        margin-bottom: 4px;
+        color: #9ca3af;
+      }
+      input {
+        width: 100%;
+        padding: 8px 10px;
+        border-radius: 10px;
+        border: 1px solid #1f2937;
+        background: #020617;
+        color: #e5e7eb;
+        font-size: 13px;
+      }
+      input:focus {
+        outline: none;
+        border-color: #22c55e;
+        box-shadow: 0 0 0 1px rgba(34, 197, 94, 0.4);
+      }
+      button {
+        width: 100%;
+        margin-top: 6px;
+        padding: 9px 12px;
+        border-radius: 999px;
+        border: none;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        background: linear-gradient(135deg, #22c55e, #14b8a6);
+        color: #020617;
+      }
+      button:disabled {
+        opacity: 0.5;
+        cursor: default;
+      }
+      .tabs {
+        display: flex;
+        gap: 4px;
+        margin-top: 14px;
+        margin-bottom: 10px;
+        overflow-x: auto;
+      }
+      .tab {
+        padding: 6px 10px;
+        border-radius: 999px;
+        border: 1px solid #1f2937;
+        font-size: 12px;
+        white-space: nowrap;
+        cursor: pointer;
+        color: #9ca3af;
+        background: #020617;
+      }
+      .tab.active {
+        border-color: #22c55e;
+        color: #ecfdf5;
+        background: rgba(34, 197, 94, 0.12);
+      }
+      .periods {
+        display: grid;
+        gap: 8px;
+      }
+      .card {
+        border-radius: 14px;
+        background: radial-gradient(circle at top left, #0f172a, #020617);
+        padding: 10px 12px;
+        border: 1px solid #1f2937;
+      }
+      .card-title {
+        font-size: 12px;
+        font-weight: 600;
+        color: #e5e7eb;
+        margin-bottom: 4px;
+      }
+      .stat-row {
+        display: flex;
+        justify-content: space-between;
+        font-size: 12px;
+        margin: 2px 0;
+        color: #d1d5db;
+      }
+      .stat-label {
+        color: #9ca3af;
+      }
+      .meta {
+        margin-top: 10px;
+        border-top: 1px solid #1f2937;
+        padding-top: 8px;
+        font-size: 11px;
+        color: #9ca3af;
+      }
+      .error {
+        margin-top: 6px;
+        font-size: 11px;
+        color: #f97373;
+      }
+      .empty {
+        margin-top: 10px;
+        font-size: 12px;
+        color: #6b7280;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <div class="header">
+        <div class="logo">
+          <div class="logo-badge">B</div>
+          <div>
+            <div class="logo-title">BAFF Stats</div>
+            <div class="muted">Mini dashboard by company id</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="companyIds">Company IDs (comma separated)</label>
+        <input
+          id="companyIds"
+          type="text"
+          placeholder="149,150"
+          autocomplete="off"
+        />
+      </div>
+      <button id="loadBtn">Load stats</button>
+      <div id="error" class="error" style="display: none"></div>
+
+      <div id="content" style="display: none">
+        <div class="tabs" id="tabs"></div>
+        <div class="periods" id="periods"></div>
+        <div class="meta" id="meta"></div>
+      </div>
+
+      <div id="empty" class="empty">
+        Enter company id(s) and tap "Load stats".
+      </div>
+    </div>
+
+    <script>
+      const loadBtn = document.getElementById('loadBtn');
+      const companyInput = document.getElementById('companyIds');
+      const tabsEl = document.getElementById('tabs');
+      const periodsEl = document.getElementById('periods');
+      const metaEl = document.getElementById('meta');
+      const errorEl = document.getElementById('error');
+      const contentEl = document.getElementById('content');
+      const emptyEl = document.getElementById('empty');
+
+      let state = {
+        companies: [],
+        activeId: null,
+      };
+
+      function formatBlock(title, s) {
+        const spendInt = Math.round(s.spent);
+        const r2d = Math.round(s.regToDepSalePercent);
+        const uniq2conv = Math.round(s.uniqueToConvPercent);
+        const costPerConv = s.costPerConversion.toFixed(2);
+        const costPerDep = s.costPerDepSale.toFixed(2);
+
+        const card = document.createElement('div');
+        card.className = 'card';
+
+        card.innerHTML = `
+          <div class="card-title">${title}</div>
+          <div class="stat-row"><span class="stat-label">Clicks</span><span>${s.clicks}</span></div>
+          <div class="stat-row"><span class="stat-label">Uniques</span><span>${s.uniques}</span></div>
+          <div class="stat-row"><span class="stat-label">spend</span><span>$${spendInt}</span></div>
+          <div class="stat-row"><span class="stat-label">regs</span><span>${s.regs}</span></div>
+          <div class="stat-row"><span class="stat-label">deps</span><span>${s.depositsSalesCount}</span></div>
+          <div class="stat-row"><span class="stat-label">r2d</span><span>${r2d}%</span></div>
+          <div class="stat-row"><span class="stat-label">uniq2conv</span><span>${uniq2conv}%</span></div>
+          <div class="stat-row"><span class="stat-label">cost per conversion</span><span>${costPerConv}$</span></div>
+          <div class="stat-row"><span class="stat-label">cost per deposit</span><span>${costPerDep}$</span></div>
+        `;
+        return card;
+      }
+
+      function render() {
+        if (!state.companies.length) {
+          contentEl.style.display = 'none';
+          emptyEl.style.display = 'block';
+          return;
+        }
+        contentEl.style.display = 'block';
+        emptyEl.style.display = 'none';
+
+        if (!state.activeId) {
+          state.activeId = state.companies[0].companyId;
+        }
+
+        tabsEl.innerHTML = '';
+        state.companies.forEach((c) => {
+          const tab = document.createElement('button');
+          tab.type = 'button';
+          tab.className = 'tab' + (c.companyId === state.activeId ? ' active' : '');
+          tab.textContent = `Company ${c.companyId}`;
+          tab.onclick = () => {
+            state.activeId = c.companyId;
+            render();
+          };
+          tabsEl.appendChild(tab);
+        });
+
+        const active = state.companies.find((c) => c.companyId === state.activeId);
+        if (!active) return;
+
+        periodsEl.innerHTML = '';
+        periodsEl.appendChild(formatBlock('All time', active.all));
+        periodsEl.appendChild(formatBlock('Yesterday', active.yesterday));
+        periodsEl.appendChild(formatBlock('Today', active.today));
+
+        metaEl.textContent = `company: ${active.companyId}`;
+      }
+
+      async function loadStats() {
+        const raw = (companyInput.value || '').trim();
+        if (!raw) {
+          errorEl.textContent = 'Enter at least one company id.';
+          errorEl.style.display = 'block';
+          return;
+        }
+        errorEl.style.display = 'none';
+        loadBtn.disabled = true;
+
+        try {
+          const params = new URLSearchParams({ companyIds: raw });
+          const res = await fetch(`/bot/company-stat?${params.toString()}`);
+          if (!res.ok) {
+            throw new Error('Request failed: ' + res.status);
+          }
+          const data = await res.json();
+          state.companies = data.companies || [];
+          state.activeId = null;
+          render();
+        } catch (e) {
+          errorEl.textContent = 'Failed to load stats. Please try again.';
+          errorEl.style.display = 'block';
+        } finally {
+          loadBtn.disabled = false;
+        }
+      }
+
+      loadBtn.addEventListener('click', loadStats);
+    </script>
+  </body>
+</html>
+

@@ -1,7 +1,8 @@
-import { Body, Controller, Post } from '@nestjs/common';
+import { Body, Controller, Get, Post, Query } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
 import { randomBytes } from 'crypto';
 import { BotSubscription } from './models/bot.model';
+import { BotService } from './bot.service';
 
 class CreateKeyDto {
   offerIds: string[];
@@ -13,6 +14,7 @@ export class BotController {
   constructor(
     @InjectModel(BotSubscription)
     private readonly botSubscriptionModel: typeof BotSubscription,
+    private readonly botService: BotService,
   ) {}
 
   @Post('key')
@@ -28,6 +30,27 @@ export class BotController {
     });
 
     return { key };
+  }
+
+  @Get('company-stat')
+  async getCompanyStat(
+    @Query('companyIds') companyIdsRaw: string,
+  ): Promise<{
+    companies: {
+      companyId: string;
+      all: any;
+      yesterday: any;
+      today: any;
+    }[];
+  }> {
+    const companyIds = (companyIdsRaw || '')
+      .split(',')
+      .map((id) => id.trim())
+      .filter(Boolean);
+
+    const companies = await this.botService.getCompanyStats(companyIds);
+
+    return { companies };
   }
 }
 
