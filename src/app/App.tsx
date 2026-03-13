@@ -119,7 +119,7 @@ export default function App() {
     const url = getShareUrl('offer', key);
     if (typeof navigator !== 'undefined' && navigator.share) {
       try {
-        await navigator.share({ url, title: 'BAFF Stats', text: 'Offer key' });
+        await navigator.share({ url, title: 'BAFF Stats' });
         return;
       } catch {}
     }
@@ -132,7 +132,7 @@ export default function App() {
     const url = getShareUrl('company', key);
     if (typeof navigator !== 'undefined' && navigator.share) {
       try {
-        await navigator.share({ url, title: 'BAFF Stats', text: 'Company key' });
+        await navigator.share({ url, title: 'BAFF Stats' });
         return;
       } catch {}
     }

@@ -1,4 +1,3 @@
-import { useState, useEffect } from 'react';
 import type { HistoryItem } from '../types';
 import { copyToClipboard } from '../storage';
 
@@ -15,30 +14,10 @@ function typeLabel(item: HistoryItem): string {
 }
 
 export function HistoryOverlay({ open, items, onClose, onApply }: HistoryOverlayProps) {
-  const [selected, setSelected] = useState<HistoryItem | null>(null);
-
-  useEffect(() => {
-    if (open) setSelected(null);
-  }, [open]);
-
   if (!open) return null;
 
-  const handleCopy = () => {
-    if (selected) copyToClipboard(selected.key);
-  };
-
-  const handleApply = () => {
-    if (selected) {
-      onApply(selected);
-      setSelected(null);
-    }
-  };
-
   const handleBackdropClick = (e: React.MouseEvent) => {
-    if (e.target === e.currentTarget) {
-      setSelected(null);
-      onClose();
-    }
+    if (e.target === e.currentTarget) onClose();
   };
 
   return (
@@ -53,41 +32,32 @@ export function HistoryOverlay({ open, items, onClose, onApply }: HistoryOverlay
             <div className="history-empty">No keys yet</div>
           ) : (
             items.map((item) => (
-              <div
-                key={`${item.key}-${item.ts}`}
-                className={`history-item ${selected?.key === item.key && selected?.ts === item.ts ? 'selected' : ''}`}
-                onClick={() => setSelected(item)}
-                role="button"
-                tabIndex={0}
-                onKeyDown={(e) => e.key === 'Enter' && setSelected(item)}
-              >
+              <div key={`${item.key}-${item.ts}`} className="history-item">
                 <div className="history-item-main">
                   <div>{item.key}</div>
                   <div className="history-meta">{typeLabel(item)}</div>
                 </div>
+                <div className="history-item-actions">
+                  <button
+                    type="button"
+                    className="history-item-btn"
+                    onClick={(e) => { e.stopPropagation(); copyToClipboard(item.key); }}
+                    aria-label="Copy key"
+                  >
+                    Copy
+                  </button>
+                  <button
+                    type="button"
+                    className="history-item-btn primary"
+                    onClick={(e) => { e.stopPropagation(); onApply(item); }}
+                    aria-label="Apply key"
+                  >
+                    Apply
+                  </button>
+                </div>
               </div>
             ))
           )}
-        </div>
-        <div className="history-footer">
-          <button
-            type="button"
-            className="history-footer-btn"
-            onClick={handleCopy}
-            disabled={!selected}
-            aria-label="Copy key"
-          >
-            Copy
-          </button>
-          <button
-            type="button"
-            className="history-footer-btn primary"
-            onClick={handleApply}
-            disabled={!selected}
-            aria-label="Apply key"
-          >
-            Apply
-          </button>
         </div>
       </div>
     </div>
