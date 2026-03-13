@@ -10,7 +10,7 @@ interface HistoryOverlayProps {
 }
 
 function typeLabel(item: HistoryItem): string {
-  const kind = item.type === 'company' || item.type === 'companies' ? 'Company' : 'Offer';
+  const kind = item.type === 'companies' ? 'Company' : 'Offer';
   return item.label ? `${kind} · ${item.label}` : kind;
 }
 

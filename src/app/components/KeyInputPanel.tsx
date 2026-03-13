@@ -3,12 +3,14 @@ interface KeyInputPanelProps {
   value: string;
   onChange: (value: string) => void;
   onReset: () => void;
+  onShare?: () => void;
   placeholder: string;
   label: string;
 }
 
-export function KeyInputPanel({ mode, value, onChange, onReset, placeholder, label }: KeyInputPanelProps) {
+export function KeyInputPanel({ mode, value, onChange, onReset, onShare, placeholder, label }: KeyInputPanelProps) {
   const id = mode === 'offers' ? 'offerKey' : 'companyKey';
+  const canShare = value.trim() && onShare;
   return (
     <div className="field">
       <label htmlFor={id}>{label}</label>
@@ -23,6 +25,9 @@ export function KeyInputPanel({ mode, value, onChange, onReset, placeholder, lab
           onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
           autoComplete="off"
         />
+        {canShare && (
+          <button type="button" className="share-btn" onClick={onShare} title="Share link">Share</button>
+        )}
         <button type="button" className="reset-btn" onClick={onReset}>Reset</button>
       </div>
     </div>

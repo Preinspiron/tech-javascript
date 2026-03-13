@@ -79,3 +79,12 @@ export async function copyToClipboard(text: string): Promise<boolean> {
     return false;
   }
 }
+
+/** Build share URL with type and key so opener gets the key pre-filled. */
+export function getShareUrl(type: 'offer' | 'company', key: string): string {
+  const base = typeof window !== 'undefined'
+    ? `${window.location.origin}${window.location.pathname}`
+    : '';
+  const params = new URLSearchParams({ type, key });
+  return `${base}?${params.toString()}`;
+}

@@ -10,6 +10,8 @@ import {
   setIntroSeen,
   getHistory,
   pushHistory,
+  getShareUrl,
+  copyToClipboard,
 } from './storage';
 import { Header } from './components/Header';
 import { Menu } from './components/Menu';
@@ -31,9 +33,30 @@ export default function App() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    setOfferKey(getStoredOfferKey());
-    setCompanyKey(getStoredCompanyKey());
-    setIntroSeenState(getIntroSeen());
+    const storedOffer = getStoredOfferKey();
+    const storedCompany = getStoredCompanyKey();
+    const params = new URLSearchParams(window.location.search);
+    const urlType = params.get('type');
+    const urlKey = params.get('key');
+
+    if (urlKey && (urlType === 'offer' || urlType === 'company')) {
+      if (urlType === 'offer') {
+        setOfferKey(urlKey);
+        setMode('offers');
+        setStoredOfferKey(urlKey);
+      } else {
+        setCompanyKey(urlKey);
+        setMode('companies');
+        setStoredCompanyKey(urlKey);
+      }
+      setIntroSeenState(true);
+      setIntroSeen();
+      window.history.replaceState({}, '', window.location.pathname);
+    } else {
+      setOfferKey(storedOffer);
+      setCompanyKey(storedCompany);
+      setIntroSeenState(getIntroSeen());
+    }
   }, []);
 
   const loadOfferStats = useCallback(async () => {
@@ -48,7 +71,7 @@ export default function App() {
       setOffers(data.offers);
       setActiveOfferId(data.offers[0]?.offerId ?? null);
       setStoredOfferKey(raw);
-      pushHistory('offer', raw, data.label);
+      pushHistory('offers', raw, data.label);
     } catch {
       setError('Failed to load offer stats. Please check key.');
     }
@@ -66,7 +89,7 @@ export default function App() {
       setCompanies(data.companies);
       setActiveCompanyId(data.companies[0]?.companyId ?? null);
       setStoredCompanyKey(raw);
-      pushHistory('company', raw, data.label);
+      pushHistory('companies', raw, data.label);
     } catch {
       setError('Failed to load company stats. Please check key.');
     }
@@ -90,11 +113,37 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, []);
 
+  const handleShareOffer = useCallback(async () => {
+    const key = offerKey.trim();
+    if (!key) return;
+    const url = getShareUrl('offer', key);
+    if (typeof navigator !== 'undefined' && navigator.share) {
+      try {
+        await navigator.share({ url, title: 'BAFF Stats', text: 'Offer key' });
+        return;
+      } catch {}
+    }
+    await copyToClipboard(url);
+  }, [offerKey]);
+
+  const handleShareCompany = useCallback(async () => {
+    const key = companyKey.trim();
+    if (!key) return;
+    const url = getShareUrl('company', key);
+    if (typeof navigator !== 'undefined' && navigator.share) {
+      try {
+        await navigator.share({ url, title: 'BAFF Stats', text: 'Company key' });
+        return;
+      } catch {}
+    }
+    await copyToClipboard(url);
+  }, [companyKey]);
+
   const handleHistoryApply = useCallback(
     async (item: HistoryItem) => {
       setHistoryOpen(false);
       setMenuOpen(false);
-      if (item.type === 'offer') {
+      if (item.type === 'offers') {
         setOfferKey(item.key);
         setMode('offers');
         setOfferKey(item.key);
@@ -159,6 +208,8 @@ export default function App() {
             setCompanyKey('');
             setStoredCompanyKey('');
           }}
+          onShareOffer={handleShareOffer}
+          onShareCompany={handleShareCompany}
           onContinue={handleContinue}
           offers={offers}
           companies={companies}
