@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import type { HistoryItem } from '../types';
 import { copyToClipboard } from '../storage';
 
@@ -8,15 +9,41 @@ interface HistoryOverlayProps {
   onApply: (item: HistoryItem) => void;
 }
 
+function typeLabel(item: HistoryItem): string {
+  const kind = item.type === 'company' || item.type === 'companies' ? 'Company' : 'Offer';
+  return item.label ? `${kind} · ${item.label}` : kind;
+}
+
 export function HistoryOverlay({ open, items, onClose, onApply }: HistoryOverlayProps) {
+  const [selected, setSelected] = useState<HistoryItem | null>(null);
+
+  useEffect(() => {
+    if (open) setSelected(null);
+  }, [open]);
+
   if (!open) return null;
-  const handleCopy = (e: React.MouseEvent, key: string) => {
-    e.stopPropagation();
-    copyToClipboard(key);
+
+  const handleCopy = () => {
+    if (selected) copyToClipboard(selected.key);
   };
+
+  const handleApply = () => {
+    if (selected) {
+      onApply(selected);
+      setSelected(null);
+    }
+  };
+
+  const handleBackdropClick = (e: React.MouseEvent) => {
+    if (e.target === e.currentTarget) {
+      setSelected(null);
+      onClose();
+    }
+  };
+
   return (
-    <div className="history-overlay" role="dialog" aria-label="Keys history" onClick={(e) => e.target === e.currentTarget && onClose()}>
-      <div className="history-modal">
+    <div className="history-overlay" role="dialog" aria-label="Keys history" onClick={handleBackdropClick}>
+      <div className="history-modal" onClick={(e) => e.stopPropagation()}>
         <div className="history-header">
           <div className="history-title">Keys history</div>
           <button type="button" className="history-close" onClick={onClose} aria-label="Close">×</button>
@@ -26,15 +53,41 @@ export function HistoryOverlay({ open, items, onClose, onApply }: HistoryOverlay
             <div className="history-empty">No keys yet</div>
           ) : (
             items.map((item) => (
-              <div key={`${item.key}-${item.ts}`} className="history-item" onClick={() => onApply(item)} role="button" tabIndex={0}>
+              <div
+                key={`${item.key}-${item.ts}`}
+                className={`history-item ${selected?.key === item.key && selected?.ts === item.ts ? 'selected' : ''}`}
+                onClick={() => setSelected(item)}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => e.key === 'Enter' && setSelected(item)}
+              >
                 <div className="history-item-main">
                   <div>{item.key}</div>
-                  <div className="history-meta">{item.type === 'company' ? 'Company' : 'Offer'}{item.label ? ` • ${item.label}` : ''}</div>
+                  <div className="history-meta">{typeLabel(item)}</div>
                 </div>
-                <button type="button" className="history-copy-btn" onClick={(e) => handleCopy(e, item.key)} aria-label="Copy key">⧉</button>
               </div>
             ))
           )}
+        </div>
+        <div className="history-footer">
+          <button
+            type="button"
+            className="history-footer-btn"
+            onClick={handleCopy}
+            disabled={!selected}
+            aria-label="Copy key"
+          >
+            Copy
+          </button>
+          <button
+            type="button"
+            className="history-footer-btn primary"
+            onClick={handleApply}
+            disabled={!selected}
+            aria-label="Apply key"
+          >
+            Apply
+          </button>
         </div>
       </div>
     </div>
