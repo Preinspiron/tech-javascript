@@ -40,6 +40,14 @@ export class BotSubscription extends Model {
   })
   label: string | null;
 
+  @AllowNull(true)
+  @Column({
+    type: DataType.INTEGER,
+    allowNull: true,
+    comment: 'Optional markup percent to apply to cost metrics',
+  })
+  costPercent: number | null;
+
   @AllowNull(false)
   @Column({
     type: DataType.STRING,

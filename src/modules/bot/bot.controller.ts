@@ -83,6 +83,24 @@ export class BotController {
       throw new NotFoundException('Offer key not found');
     }
 
+    const costPercent =
+      (subscription as any).costPercent != null
+        ? Number((subscription as any).costPercent)
+        : null;
+
+    const applyCostPercent = <T extends { spent: number; costPerConversion: number; costPerDepSale: number }>(
+      s: T,
+    ): T => {
+      if (costPercent == null || Number.isNaN(costPercent)) return s;
+      const factor = 1 + costPercent / 100;
+      return {
+        ...s,
+        spent: s.spent * factor,
+        costPerConversion: s.costPerConversion * factor,
+        costPerDepSale: s.costPerDepSale * factor,
+      };
+    };
+
     const offerIds = subscription.offerIds
       .split(',')
       .map((id) => id.trim())
@@ -98,9 +116,9 @@ export class BotController {
       offers.push({
         offerId,
         offerName: all.offerName,
-        all,
-        yesterday,
-        today,
+        all: applyCostPercent(all),
+        yesterday: applyCostPercent(yesterday),
+        today: applyCostPercent(today),
       });
     }
 
@@ -134,12 +152,39 @@ export class BotController {
       throw new NotFoundException('Company key not found');
     }
 
+    const costPercent =
+      (subscription as any).costPercent != null
+        ? Number((subscription as any).costPercent)
+        : null;
+
+    const applyCostPercent = <T extends { spent: number; costPerConversion: number; costPerDepSale: number }>(
+      s: T,
+    ): T => {
+      if (costPercent == null || Number.isNaN(costPercent)) return s;
+      const factor = 1 + costPercent / 100;
+      return {
+        ...s,
+        spent: s.spent * factor,
+        costPerConversion: s.costPerConversion * factor,
+        costPerDepSale: s.costPerDepSale * factor,
+      };
+    };
+
     const companyIds = subscription.offerIds
       .split(',')
       .map((id) => id.trim())
       .filter(Boolean);
 
-    const companies = await this.botService.getCompanyStats(companyIds);
+    const rawCompanies = await this.botService.getCompanyStats(companyIds);
+    const companies =
+      costPercent == null || Number.isNaN(costPercent)
+        ? rawCompanies
+        : rawCompanies.map((c) => ({
+            companyId: c.companyId,
+            all: applyCostPercent(c.all),
+            yesterday: applyCostPercent(c.yesterday),
+            today: applyCostPercent(c.today),
+          }));
 
     return {
       key: subscription.key,

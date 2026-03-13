@@ -174,15 +174,19 @@ export class BotService implements OnModuleInit {
         this.chatStates.set(chatId, { state: 'awaiting_offer_config' });
         await this.bot!.sendMessage(
           chatId,
-          'Send offer config in format: offerId1,offerId2 Label\n' +
-            'Example: 149,150 BETFM',
+          'Send offer config in format: offerId1,offerId2 [percent] Label\n' +
+            'Examples:\n' +
+            '  149,150 30 BETFM (increase costs by 30%)\n' +
+            '  149,150 BETFM (no cost change)',
         );
       } else if (data === 'setup_company') {
         this.chatStates.set(chatId, { state: 'awaiting_company_config' });
         await this.bot!.sendMessage(
           chatId,
-          'Send company config in format: companyId1,companyId2 Label\n' +
-            'Example: 10,11 BrandX',
+          'Send company config in format: companyId1,companyId2 [percent] Label\n' +
+            'Examples:\n' +
+            '  10,11 30 BrandX (increase costs by 30%)\n' +
+            '  10,11 BrandX (no cost change)',
         );
       }
 
@@ -269,13 +273,25 @@ export class BotService implements OnModuleInit {
 
     const parts = text.trim().split(/\s+/);
     const idsPart = parts[0];
-    const labelPart = parts.slice(1).join(' ');
+    let costPercent: number | null = null;
+    let labelPart = '';
+
+    if (parts.length >= 2) {
+      const maybePercentRaw = parts[1].replace('%', '');
+      const maybePercent = Number(maybePercentRaw);
+      if (!Number.isNaN(maybePercent)) {
+        costPercent = maybePercent;
+        labelPart = parts.slice(2).join(' ');
+      } else {
+        labelPart = parts.slice(1).join(' ');
+      }
+    }
 
     if (!idsPart) {
       const usage =
         (subscription as any).type === 'company'
-          ? 'companyId1,companyId2 Label'
-          : 'offerId1,offerId2 Label';
+          ? 'companyId1,companyId2 [percent] Label'
+          : 'offerId1,offerId2 [percent] Label';
       await this.bot.sendMessage(chatId, `Invalid format. Use: ${usage}`);
       return;
     }
@@ -291,6 +307,7 @@ export class BotService implements OnModuleInit {
 
     subscription.offerIds = ids.join(',');
     subscription.label = labelPart || null;
+    subscription.costPercent = costPercent;
     await subscription.save();
 
     await this.bot.sendMessage(
@@ -300,7 +317,10 @@ export class BotService implements OnModuleInit {
         ((subscription as any).type === 'offer'
           ? `Offers: ${ids.join(', ')}\n`
           : `Companies: ${ids.join(', ')}\n`) +
-        (subscription.label ? `Label: ${subscription.label}\n` : ''),
+        (subscription.label ? `Label: ${subscription.label}\n` : '') +
+        (subscription.costPercent != null
+          ? `Cost markup: ${subscription.costPercent}%\n`
+          : ''),
       { parse_mode: 'Markdown' },
     );
   }
@@ -316,13 +336,25 @@ export class BotService implements OnModuleInit {
 
     const parts = text.trim().split(/\s+/);
     const idsPart = parts[0];
-    const labelPart = parts.slice(1).join(' ');
+    let costPercent: number | null = null;
+    let labelPart = '';
+
+    if (parts.length >= 2) {
+      const maybePercentRaw = parts[1].replace('%', '');
+      const maybePercent = Number(maybePercentRaw);
+      if (!Number.isNaN(maybePercent)) {
+        costPercent = maybePercent;
+        labelPart = parts.slice(2).join(' ');
+      } else {
+        labelPart = parts.slice(1).join(' ');
+      }
+    }
 
     if (!idsPart) {
       const usagePrefix =
         type === 'offer'
-          ? 'offerId1,offerId2 Label'
-          : 'companyId1,companyId2 Label';
+          ? 'offerId1,offerId2 [percent] Label'
+          : 'companyId1,companyId2 [percent] Label';
       await this.bot.sendMessage(
         chatId,
         `Cannot parse format. Use: ${usagePrefix}`,
@@ -349,6 +381,7 @@ export class BotService implements OnModuleInit {
       chatId: String(chatId),
       offerIds: ids.join(','),
       label: labelPart || null,
+      costPercent,
       sendHour: this.dailySendHour,
       type,
     });
@@ -361,6 +394,7 @@ export class BotService implements OnModuleInit {
           ? `Offers: ${ids.join(', ')}\n`
           : `Companies: ${ids.join(', ')}\n`) +
         (labelPart ? `Label: ${labelPart}\n` : '') +
+        (costPercent != null ? `Cost markup: ${costPercent}%\n` : '') +
         `Daily stats will be sent around ${this.dailySendHour}:00 (server time).\n\n` +
         'To get stats immediately — send /stat and then this key.',
       { parse_mode: 'Markdown' },
@@ -396,6 +430,23 @@ export class BotService implements OnModuleInit {
 
     const lines: string[] = [];
     const type = (subscription as any).type || 'offer';
+    const costPercent =
+      (subscription as any).costPercent != null
+        ? Number((subscription as any).costPercent)
+        : null;
+
+    const applyCostPercent = <T extends { spent: number; costPerConversion: number; costPerDepSale: number }>(
+      s: T,
+    ): T => {
+      if (costPercent == null || Number.isNaN(costPercent)) return s;
+      const factor = 1 + costPercent / 100;
+      return {
+        ...s,
+        spent: s.spent * factor,
+        costPerConversion: s.costPerConversion * factor,
+        costPerDepSale: s.costPerDepSale * factor,
+      };
+    };
 
     if (type === 'company') {
       const companyIds = subscription.offerIds
@@ -403,7 +454,16 @@ export class BotService implements OnModuleInit {
         .map((id) => id.trim())
         .filter(Boolean);
 
-      const companies = await this.getCompanyStats(companyIds);
+      const companiesRaw = await this.getCompanyStats(companyIds);
+      const companies =
+        costPercent == null || Number.isNaN(costPercent)
+          ? companiesRaw
+          : companiesRaw.map((c) => ({
+              companyId: c.companyId,
+              all: applyCostPercent(c.all),
+              yesterday: applyCostPercent(c.yesterday),
+              today: applyCostPercent(c.today),
+            }));
 
       for (const company of companies) {
         const formatBlock = (
@@ -458,12 +518,13 @@ export class BotService implements OnModuleInit {
           prefix: string,
           s: Awaited<ReturnType<typeof this.fetchOfferStats>>,
         ) => {
-          const spendInt = Math.round(s.spent);
+          const adjusted = applyCostPercent(s);
+          const spendInt = Math.round(adjusted.spent);
           const r2d = Math.round(s.regToDepSalePercent);
           const uniq2conv = Math.round(s.uniqueToConvPercent);
-          const costPerConv = s.costPerConversion.toFixed(2);
-          const costPerDep = s.costPerDepSale.toFixed(2);
-          const namePart = s.offerName ? ` ${s.offerName}` : '';
+          const costPerConv = adjusted.costPerConversion.toFixed(2);
+          const costPerDep = adjusted.costPerDepSale.toFixed(2);
+          const namePart = adjusted.offerName ? ` ${adjusted.offerName}` : '';
 
           return [
             `${prefix} -> ${offerId}${namePart}`,
