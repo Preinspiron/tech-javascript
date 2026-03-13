@@ -4,13 +4,18 @@ interface KeyInputPanelProps {
   onChange: (value: string) => void;
   onReset: () => void;
   onShare?: () => void;
+  onKeyEnter?: (value: string, kind: 'offers' | 'companies') => void;
   placeholder: string;
   label: string;
 }
 
-export function KeyInputPanel({ mode, value, onChange, onReset, onShare, placeholder, label }: KeyInputPanelProps) {
+export function KeyInputPanel({ mode, value, onChange, onReset, onShare, onKeyEnter, placeholder, label }: KeyInputPanelProps) {
   const id = mode === 'offers' ? 'offerKey' : 'companyKey';
   const canShare = value.trim() && onShare;
+  const handleBlur = () => {
+    const v = value.trim();
+    if (v && onKeyEnter) onKeyEnter(v, mode);
+  };
   return (
     <div className="field">
       <label htmlFor={id}>{label}</label>
@@ -22,6 +27,7 @@ export function KeyInputPanel({ mode, value, onChange, onReset, onShare, placeho
           placeholder={placeholder}
           value={value}
           onChange={(e) => onChange(e.target.value)}
+          onBlur={handleBlur}
           onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
           autoComplete="off"
         />

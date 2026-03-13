@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { Partners } from './Partners';
 import snoop from '../assets/snoop.webp';
-import React from 'react';
+import { track } from '../tracking';
 
 function animateValue(el: HTMLElement | null, start: number, end: number, duration: number) {
   if (!el) return;
@@ -17,12 +17,14 @@ function animateValue(el: HTMLElement | null, start: number, end: number, durati
 
 interface IntroScreenProps {
   onContinue: () => void;
+  onSupportClick?: () => void;
 }
 
-export function IntroScreen({ onContinue }: IntroScreenProps) {
+export function IntroScreen({ onContinue, onSupportClick }: IntroScreenProps) {
   const ftdTodayRef = useRef<HTMLDivElement>(null);
   const ftdYearRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
+    track('intro', 'intro', 'intro_view');
     animateValue(ftdTodayRef.current, 0, 4000, 2000);
     animateValue(ftdYearRef.current, 100000, 500000, 2200);
   }, []);
@@ -43,11 +45,11 @@ export function IntroScreen({ onContinue }: IntroScreenProps) {
       <div className="intro-image">
         <img src={snoop} alt="BAFF" />
       </div>
-      <Partners />
+      <Partners onPartnerClick={(partner) => track(partner, 'intro', 'intro_partner_click')} />
       <button type="button" className="btn-primary" onClick={onContinue}>Continue</button>
       <div className="intro-center">
         Need help?{' '}
-        <a href="https://t.me/+C4MhFEK6ruJmOGVk" className="intro-link" target="_blank" rel="noopener noreferrer">BAFF support</a>
+        <a href="https://t.me/+C4MhFEK6ruJmOGVk" className="intro-link" target="_blank" rel="noopener noreferrer" onClick={onSupportClick}>BAFF support</a>
       </div>
     </div>
   );

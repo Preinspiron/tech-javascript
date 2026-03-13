@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import type { KeyMode, OfferStatItem, CompanyStatItem, HistoryItem } from './types';
 import { fetchOfferKeyStat, fetchCompanyKeyStat } from './api';
 import {
@@ -13,6 +13,7 @@ import {
   getShareUrl,
   copyToClipboard,
 } from './storage';
+import { track } from './tracking';
 import { Header } from './components/Header';
 import { Menu } from './components/Menu';
 import { IntroScreen } from './components/IntroScreen';
@@ -31,6 +32,15 @@ export default function App() {
   const [activeOfferId, setActiveOfferId] = useState<string | null>(null);
   const [activeCompanyId, setActiveCompanyId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [isLoadingStats, setIsLoadingStats] = useState(false);
+
+  const didTrackOpen = useRef(false);
+  useEffect(() => {
+    if (!didTrackOpen.current) {
+      didTrackOpen.current = true;
+      track('app', 'app', 'app_open');
+    }
+  }, []);
 
   useEffect(() => {
     const storedOffer = getStoredOfferKey();
@@ -40,6 +50,7 @@ export default function App() {
     const urlKey = params.get('key');
 
     if (urlKey && (urlType === 'offer' || urlType === 'company')) {
+      track(urlKey, urlType, 'app_link_open');
       if (urlType === 'offer') {
         setOfferKey(urlKey);
         setMode('offers');
@@ -66,14 +77,18 @@ export default function App() {
       return;
     }
     setError(null);
+    setIsLoadingStats(true);
     try {
       const data = await fetchOfferKeyStat(raw);
       setOffers(data.offers);
       setActiveOfferId(data.offers[0]?.offerId ?? null);
       setStoredOfferKey(raw);
       pushHistory('offers', raw, data.label);
+      track(raw, 'offer', 'stats_loaded');
     } catch {
       setError('Failed to load offer stats. Please check key.');
+    } finally {
+      setIsLoadingStats(false);
     }
   }, [offerKey]);
 
@@ -84,18 +99,24 @@ export default function App() {
       return;
     }
     setError(null);
+    setIsLoadingStats(true);
     try {
       const data = await fetchCompanyKeyStat(raw);
       setCompanies(data.companies);
       setActiveCompanyId(data.companies[0]?.companyId ?? null);
       setStoredCompanyKey(raw);
       pushHistory('companies', raw, data.label);
+      track(raw, 'company', 'stats_loaded');
     } catch {
       setError('Failed to load company stats. Please check key.');
+    } finally {
+      setIsLoadingStats(false);
     }
   }, [companyKey]);
 
   const handleContinue = useCallback(() => {
+    track('intro', 'intro', 'intro_continue');
+    track(offerKey.trim() || companyKey.trim() || 'app', 'app', 'continue_click');
     setIntroSeen();
     setIntroSeenState(true);
     if (offerKey.trim()) {
@@ -107,6 +128,7 @@ export default function App() {
   }, [offerKey, companyKey, loadOfferStats, loadCompanyStats]);
 
   const handleHome = useCallback(() => {
+    track('app', 'menu', 'menu_home');
     setIntroSeenState(false);
     setMenuOpen(false);
     setHistoryOpen(false);
@@ -116,6 +138,7 @@ export default function App() {
   const handleShareOffer = useCallback(async () => {
     const key = offerKey.trim();
     if (!key) return;
+    track(key, 'offer', 'share');
     const url = getShareUrl('offer', key);
     if (typeof navigator !== 'undefined' && navigator.share) {
       try {
@@ -129,6 +152,7 @@ export default function App() {
   const handleShareCompany = useCallback(async () => {
     const key = companyKey.trim();
     if (!key) return;
+    track(key, 'company', 'share');
     const url = getShareUrl('company', key);
     if (typeof navigator !== 'undefined' && navigator.share) {
       try {
@@ -141,57 +165,82 @@ export default function App() {
 
   const handleHistoryApply = useCallback(
     async (item: HistoryItem) => {
+      track(item.key, item.type === 'offers' ? 'offer' : 'company', 'history_apply');
       setHistoryOpen(false);
       setMenuOpen(false);
-      if (item.type === 'offers') {
-        setOfferKey(item.key);
-        setMode('offers');
-        setOfferKey(item.key);
-        try {
-          const data = await fetchOfferKeyStat(item.key);
-          setOffers(data.offers);
-          setActiveOfferId(data.offers[0]?.offerId ?? null);
-        } catch {
-          setError('Failed to load offer stats.');
+      setIsLoadingStats(true);
+      try {
+        if (item.type === 'offers') {
+          setOfferKey(item.key);
+          setMode('offers');
+          try {
+            const data = await fetchOfferKeyStat(item.key);
+            setOffers(data.offers);
+            setActiveOfferId(data.offers[0]?.offerId ?? null);
+          } catch {
+            setError('Failed to load offer stats.');
+          }
+        } else {
+          setCompanyKey(item.key);
+          setMode('companies');
+          try {
+            const data = await fetchCompanyKeyStat(item.key);
+            setCompanies(data.companies);
+            setActiveCompanyId(data.companies[0]?.companyId ?? null);
+          } catch {
+            setError('Failed to load company stats.');
+          }
         }
-      } else {
-        setCompanyKey(item.key);
-        setMode('companies');
-        try {
-          const data = await fetchCompanyKeyStat(item.key);
-          setCompanies(data.companies);
-          setActiveCompanyId(data.companies[0]?.companyId ?? null);
-        } catch {
-          setError('Failed to load company stats.');
-        }
+      } finally {
+        setIsLoadingStats(false);
       }
     },
     [],
   );
 
+  useEffect(() => {
+    if (historyOpen) track('app', 'history', 'history_open');
+  }, [historyOpen]);
+
   return (
     <>
-      <Header onMenuClick={() => setMenuOpen((v) => !v)} />
+      <Header
+        onMenuClick={() => {
+          setMenuOpen((v) => {
+            if (!v) track('app', 'menu', 'menu_open');
+            return !v;
+          });
+        }}
+      />
       <Menu
         open={menuOpen}
-        onClose={() => setMenuOpen(false)}
+        onClose={() => {
+          track('app', 'menu', 'menu_close');
+          setMenuOpen(false);
+        }}
         onHome={handleHome}
         onHistory={() => {
+          track('app', 'menu', 'menu_history');
           setMenuOpen(false);
           setHistoryOpen(true);
         }}
+        onSupportClick={() => track('app', 'menu', 'menu_support')}
       />
       {!introSeen && (
         <>
-          <IntroScreen onContinue={handleContinue} />
+          <IntroScreen onContinue={handleContinue} onSupportClick={() => track('intro', 'intro', 'intro_support_click')} />
         </>
       )}
       {introSeen && (
         <MainScreen
+          isLoadingStats={isLoadingStats}
           mode={mode}
           offerKey={offerKey}
           companyKey={companyKey}
-          onModeChange={setMode}
+          onModeChange={(m) => {
+            setMode(m);
+            track('app', 'app', m === 'offers' ? 'tab_offers' : 'tab_companies');
+          }}
           onOfferKeyChange={(v) => {
             setOfferKey(v);
             setStoredOfferKey(v);
@@ -201,13 +250,16 @@ export default function App() {
             setStoredCompanyKey(v);
           }}
           onResetOffer={() => {
+            track(offerKey || 'empty', 'offer', 'key_reset');
             setOfferKey('');
             setStoredOfferKey('');
           }}
           onResetCompany={() => {
+            track(companyKey || 'empty', 'company', 'key_reset');
             setCompanyKey('');
             setStoredCompanyKey('');
           }}
+          onKeyEnter={(value: string, kind: KeyMode) => track(value, kind === 'offers' ? 'offer' : 'company', 'key_entered')}
           onShareOffer={handleShareOffer}
           onShareCompany={handleShareCompany}
           onContinue={handleContinue}
@@ -215,16 +267,26 @@ export default function App() {
           companies={companies}
           activeOfferId={activeOfferId}
           activeCompanyId={activeCompanyId}
-          onSelectOffer={setActiveOfferId}
-          onSelectCompany={setActiveCompanyId}
+          onSelectOffer={(id) => {
+            setActiveOfferId(id);
+            track(offerKey || 'unknown', 'offer', `stats_tab_${id}`);
+          }}
+          onSelectCompany={(id) => {
+            setActiveCompanyId(id);
+            track(companyKey || 'unknown', 'company', `stats_tab_${id}`);
+          }}
           error={error}
         />
       )}
       <HistoryOverlay
         open={historyOpen}
         items={getHistory()}
-        onClose={() => setHistoryOpen(false)}
+        onClose={() => {
+          track('app', 'history', 'history_close');
+          setHistoryOpen(false);
+        }}
         onApply={handleHistoryApply}
+        onCopyTrack={(key: string, type: KeyMode) => track(key, type === 'offers' ? 'offer' : 'company', 'history_copy')}
       />
     </>
   );

@@ -5,9 +5,10 @@ interface MenuProps {
   onClose: () => void;
   onHome: () => void;
   onHistory: () => void;
+  onSupportClick?: () => void;
 }
 
-export function Menu({ open, onClose, onHome, onHistory }: MenuProps) {
+export function Menu({ open, onClose, onHome, onHistory, onSupportClick }: MenuProps) {
   if (!open) return null;
   return (
     <div className="menu-popup" role="dialog" aria-label="Menu">
@@ -20,7 +21,14 @@ export function Menu({ open, onClose, onHome, onHistory }: MenuProps) {
         </div>
         <div className="menu-item" onClick={onHome} role="button" tabIndex={0}>Home</div>
         <div className="menu-item" onClick={onHistory} role="button" tabIndex={0}>History</div>
-        <div className="menu-item" onClick={() => window.open(SUPPORT_URL, '_blank')} role="link" tabIndex={0}>BAFF support</div>
+        <div
+          className="menu-item"
+          onClick={() => { onSupportClick?.(); window.open(SUPPORT_URL, '_blank'); }}
+          role="button"
+          tabIndex={0}
+        >
+          BAFF support
+        </div>
       </div>
     </div>
   );

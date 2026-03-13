@@ -1,4 +1,4 @@
-import type { HistoryItem } from '../types';
+import type { HistoryItem, KeyMode } from '../types';
 import { copyToClipboard } from '../storage';
 
 interface HistoryOverlayProps {
@@ -6,6 +6,7 @@ interface HistoryOverlayProps {
   items: HistoryItem[];
   onClose: () => void;
   onApply: (item: HistoryItem) => void;
+  onCopyTrack?: (key: string, type: KeyMode) => void;
 }
 
 function typeLabel(item: HistoryItem): string {
@@ -13,11 +14,17 @@ function typeLabel(item: HistoryItem): string {
   return item.label ? `${kind} · ${item.label}` : kind;
 }
 
-export function HistoryOverlay({ open, items, onClose, onApply }: HistoryOverlayProps) {
+export function HistoryOverlay({ open, items, onClose, onApply, onCopyTrack }: HistoryOverlayProps) {
   if (!open) return null;
 
   const handleBackdropClick = (e: React.MouseEvent) => {
     if (e.target === e.currentTarget) onClose();
+  };
+
+  const handleCopy = (e: React.MouseEvent, item: HistoryItem) => {
+    e.stopPropagation();
+    copyToClipboard(item.key);
+    onCopyTrack?.(item.key, item.type);
   };
 
   return (
@@ -41,7 +48,7 @@ export function HistoryOverlay({ open, items, onClose, onApply }: HistoryOverlay
                   <button
                     type="button"
                     className="history-item-btn"
-                    onClick={(e) => { e.stopPropagation(); copyToClipboard(item.key); }}
+                    onClick={(e) => handleCopy(e, item)}
                     aria-label="Copy key"
                   >
                     Copy
