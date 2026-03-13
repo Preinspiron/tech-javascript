@@ -65,8 +65,8 @@ export class BotService implements OnModuleInit {
     this.bot.onText(/^\/postback(?:@\w+)?$/, async (msg) => {
       const chatId = msg.chat.id;
       const text =
-        'REGS:\nhttps://buddytraff.com/postpack?status=reg\n\n' +
-        'DEPS:\nhttps://buddytraff.com/postpack?status=sale';
+        'REGS:\nhttps://buddytraff.com/postpack?subid={REPLACE}status=reg&from=REPLACE\n\n' +
+        'DEPS:\nhttps://buddytraff.com/postpack?subid={REPLACE}status=sale&payout={REPLACE}&from=REPLACE';
 
       await this.bot!.sendMessage(chatId, text);
     });
