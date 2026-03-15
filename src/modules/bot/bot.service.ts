@@ -476,7 +476,10 @@ export class BotService implements OnModuleInit {
           prefix: string,
           s: Awaited<ReturnType<typeof this.fetchCompanyStats>>,
         ) => {
-          const spendStr = s.spent === 0 ? '—' : `$${Math.round(s.spent)}`;
+          const spendStr =
+            s.spent === 0
+              ? '—'
+              : `${String(Math.round(s.spent)).replace(/\B(?=(\d{3})+(?!\d))/g, ' ')}$`;
           const r2d = Math.round(s.regToDepSalePercent);
           const uniq2conv = Math.round(s.uniqueToConvPercent);
           const costPerConv = s.costPerConversion.toFixed(2);
@@ -519,7 +522,9 @@ export class BotService implements OnModuleInit {
         ) => {
           const adjusted = applyCostPercent(s);
           const spendStr =
-            adjusted.spent === 0 ? '—' : `$${Math.round(adjusted.spent)}`;
+            adjusted.spent === 0
+              ? '—'
+              : `${String(Math.round(adjusted.spent)).replace(/\B(?=(\d{3})+(?!\d))/g, ' ')}$`;
           const r2d = Math.round(s.regToDepSalePercent);
           const uniq2conv = Math.round(s.uniqueToConvPercent);
           const costPerConv = adjusted.costPerConversion.toFixed(2);
