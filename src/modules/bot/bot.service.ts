@@ -466,39 +466,36 @@ export class BotService implements OnModuleInit {
             }));
 
       for (const company of companies) {
+        const namePart = company.all.companyName
+          ? ` ${company.all.companyName}`
+          : '';
+        const header = `━━━ ${company.companyId}${namePart} ━━━`;
+        lines.push(header);
+
         const formatBlock = (
           prefix: string,
           s: Awaited<ReturnType<typeof this.fetchCompanyStats>>,
-          companyId: string,
         ) => {
           const spendInt = Math.round(s.spent);
           const r2d = Math.round(s.regToDepSalePercent);
           const uniq2conv = Math.round(s.uniqueToConvPercent);
           const costPerConv = s.costPerConversion.toFixed(2);
           const costPerDep = s.costPerDepSale.toFixed(2);
-          const namePart = s.companyName ? ` ${s.companyName}` : '';
 
           return [
-            `${prefix} -> ${companyId}${namePart}`,
-            `  Clicks: ${s.clicks}`,
-            `  Uniques: ${s.uniques}`,
-            `  spend: $${spendInt}`,
-            `  regs: ${s.regs}`,
-            `  deps: ${s.depositsSalesCount}`,
-            `  r2d: ${r2d}%`,
-            `  uniq2conv: ${uniq2conv}%`,
-            `  cost per conversion: ${costPerConv}$`,
-            `  cost per deposit: ${costPerDep}$`,
+            `🔹 ${prefix}`,
+            `👆 Clicks/Uniques: ${s.clicks}/${s.uniques}  uniq2conv=${uniq2conv}%`,
+            `📋 Regs/Deps: ${s.regs}/${s.depositsSalesCount}  r2d=${r2d}%`,
+            `💰 Cost per reg/dep: ${costPerConv}$/${costPerDep}$`,
+            `💵 Spend: $${spendInt}`,
           ].join('\n');
         };
 
-        lines.push(formatBlock('All time', company.all, company.companyId));
+        lines.push(formatBlock('All time', company.all));
         lines.push('');
-        lines.push(
-          formatBlock('Yesterday', company.yesterday, company.companyId),
-        );
+        lines.push(formatBlock('Yesterday', company.yesterday));
         lines.push('');
-        lines.push(formatBlock('Today', company.today, company.companyId));
+        lines.push(formatBlock('Today', company.today));
         lines.push('\n');
       }
     } else {
@@ -514,6 +511,10 @@ export class BotService implements OnModuleInit {
           this.fetchOfferStats(offerId, 'today'),
         ]);
 
+        const namePart = all.offerName ? ` ${all.offerName}` : '';
+        const header = `━━━ ${offerId}${namePart} ━━━`;
+        lines.push(header);
+
         const formatBlock = (
           prefix: string,
           s: Awaited<ReturnType<typeof this.fetchOfferStats>>,
@@ -524,19 +525,13 @@ export class BotService implements OnModuleInit {
           const uniq2conv = Math.round(s.uniqueToConvPercent);
           const costPerConv = adjusted.costPerConversion.toFixed(2);
           const costPerDep = adjusted.costPerDepSale.toFixed(2);
-          const namePart = adjusted.offerName ? ` ${adjusted.offerName}` : '';
 
           return [
-            `${prefix} -> ${offerId}${namePart}`,
-            `  Clicks: ${s.clicks}`,
-            `  Uniques: ${s.uniques}`,
-            `  spend: $${spendInt}`,
-            `  regs: ${s.regs}`,
-            `  deps: ${s.depositsSalesCount}`,
-            `  r2d: ${r2d}%`,
-            `  uniq2conv: ${uniq2conv}%`,
-            `  cost per conversion: ${costPerConv}$`,
-            `  cost per deposit: ${costPerDep}$`,
+            `🔹 ${prefix}`,
+            `👆 Clicks/Uniques: ${s.clicks}/${s.uniques}  uniq2conv=${uniq2conv}%`,
+            `📋 Regs/Deps: ${s.regs}/${s.depositsSalesCount}  r2d=${r2d}%`,
+            `💰 Cost per reg/dep: ${costPerConv}$/${costPerDep}$`,
+            `💵 Spend: $${spendInt}`,
           ].join('\n');
         };
 
