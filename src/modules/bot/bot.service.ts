@@ -476,18 +476,16 @@ export class BotService implements OnModuleInit {
           prefix: string,
           s: Awaited<ReturnType<typeof this.fetchCompanyStats>>,
         ) => {
-          const spendInt = Math.round(s.spent);
+          const spendStr = s.spent === 0 ? '—' : `$${Math.round(s.spent)}`;
           const r2d = Math.round(s.regToDepSalePercent);
           const uniq2conv = Math.round(s.uniqueToConvPercent);
           const costPerConv = s.costPerConversion.toFixed(2);
           const costPerDep = s.costPerDepSale.toFixed(2);
 
           return [
-            `🔹 ${prefix}`,
-            `👆 Clicks/Uniques: ${s.clicks}/${s.uniques}  uniq2conv=${uniq2conv}%`,
-            `📋 Regs/Deps: ${s.regs}/${s.depositsSalesCount}  r2d=${r2d}%`,
-            `💰 Cost per reg/dep: ${costPerConv}$/${costPerDep}$`,
-            `💵 Spend: $${spendInt}`,
+            `🔹 ${prefix} spend: ${spendStr} Regs/Deps: ${costPerConv}$ / ${costPerDep}$`,
+            `👆 Clicks/Uniques: ${s.clicks} / ${s.uniques}  uniq2conv=${uniq2conv}%`,
+            `📋 Regs/Deps: ${s.regs} / ${s.depositsSalesCount}  r2d=${r2d}%`,
           ].join('\n');
         };
 
@@ -520,18 +518,17 @@ export class BotService implements OnModuleInit {
           s: Awaited<ReturnType<typeof this.fetchOfferStats>>,
         ) => {
           const adjusted = applyCostPercent(s);
-          const spendInt = Math.round(adjusted.spent);
+          const spendStr =
+            adjusted.spent === 0 ? '—' : `$${Math.round(adjusted.spent)}`;
           const r2d = Math.round(s.regToDepSalePercent);
           const uniq2conv = Math.round(s.uniqueToConvPercent);
           const costPerConv = adjusted.costPerConversion.toFixed(2);
           const costPerDep = adjusted.costPerDepSale.toFixed(2);
 
           return [
-            `🔹 ${prefix}`,
-            `👆 Clicks/Uniques: ${s.clicks}/${s.uniques}  uniq2conv=${uniq2conv}%`,
-            `📋 Regs/Deps: ${s.regs}/${s.depositsSalesCount}  r2d=${r2d}%`,
-            `💰 Cost per reg/dep: ${costPerConv}$/${costPerDep}$`,
-            `💵 Spend: $${spendInt}`,
+            `🔹 ${prefix} spend: ${spendStr} Regs/Deps: ${costPerConv}$ / ${costPerDep}$`,
+            `👆 Clicks/Uniques: ${s.clicks} / ${s.uniques}  uniq2conv=${uniq2conv}%`,
+            `📋 Regs/Deps: ${s.regs} / ${s.depositsSalesCount}  r2d=${r2d}%`,
           ].join('\n');
         };
 
