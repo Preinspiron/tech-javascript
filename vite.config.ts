@@ -9,5 +9,11 @@ export default defineConfig({
   build: {
     outDir: resolve(__dirname, 'public/baff-mini'),
     emptyOutDir: true,
+    rollupOptions: {
+       input: {
+        main: resolve(__dirname, 'src/app/index.html'),
+        casino: resolve(__dirname, 'src/app/index2.html'),
+      },
+    },
   },
 });
