@@ -471,6 +471,7 @@ export class BotService implements OnModuleInit {
           : '';
         const header = `━━━ ${company.companyId}${namePart} ━━━`;
         lines.push(header);
+        lines.push('');
 
         const formatBlock = (
           prefix: string,
@@ -515,6 +516,7 @@ export class BotService implements OnModuleInit {
         const namePart = all.offerName ? ` ${all.offerName}` : '';
         const header = `━━━ ${offerId}${namePart} ━━━`;
         lines.push(header);
+        lines.push('');
 
         const formatBlock = (
           prefix: string,
