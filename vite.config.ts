@@ -12,7 +12,7 @@ export default defineConfig({
     rollupOptions: {
        input: {
         main: resolve(__dirname, 'src/app/index.html'),
-        casino: resolve(__dirname, 'src/app/index2.html'),
+        casino: resolve(__dirname, 'src/app/predict.html'),
       },
     },
   },
