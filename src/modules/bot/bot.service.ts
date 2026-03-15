@@ -716,7 +716,6 @@ export class BotService implements OnModuleInit {
         clicks += Number(row.clicks ?? 0);
         uniques += Number(row.visitors ?? 0);
         cost += Number(row.cost ?? 0);
-        regs += Number(row.regs ?? 0);
         conversions += Number(row.conversions ?? 0);
         deposits += Number(row.deposits ?? 0);
         sales += Number(row.sales ?? 0);
@@ -725,6 +724,8 @@ export class BotService implements OnModuleInit {
         }
       }
 
+      // В Keitaro регистрации хранятся в conversions, не в regs
+      regs = conversions;
       const depositsSalesCount = deposits + sales;
       const spent = Math.round((cost + Number.EPSILON) * 100) / 100;
 
@@ -945,7 +946,6 @@ export class BotService implements OnModuleInit {
         clicks += Number(row.clicks ?? 0);
         uniques += Number(row.visitors ?? 0);
         cost += Number(row.cost ?? 0);
-        regs += Number(row.regs ?? 0);
         conversions += Number(row.conversions ?? 0);
         deposits += Number(row.deposits ?? 0);
         sales += Number(row.sales ?? 0);
@@ -954,6 +954,8 @@ export class BotService implements OnModuleInit {
         }
       }
 
+      // В Keitaro регистрации хранятся в conversions, не в regs
+      regs = conversions;
       const depositsSalesCount = deposits + sales;
       const spent = Math.round((cost + Number.EPSILON) * 100) / 100;
 
