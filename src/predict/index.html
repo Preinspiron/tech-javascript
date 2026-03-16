@@ -35,19 +35,38 @@
   <body>
     <div id="predict"></div>
     <script type="application/javascript">
-      window.baff = {
-        // offer: '{offer_value:offer}',
-        offer: !'{offer_value:offer}'.includes('value') || 'https://betfm.cc',
-        link: !'{offer_value:link}'.includes('value') || 'https://whatsapp.com/channel/0029Vb86eOJ9Bb62cNhc9220',
-        support: !'{offer_value:support}'.includes('value') || 'https://t.me/+C4MhFEK6ruJmOGVk',
-        limit: !'{offer_value:limit}'.includes('value') || '3',
-        corner: !'{offer_value:corner}'.includes('value') || 'right_15',
-      };
-
       (function () {
-        // var base = 'https://betfm.cc';
-        var src = window.baff.offer + (window.location.search || '');
-        var srcAttr = src.replace(/&/g, '&amp;').replace(/"/g, '&quot;');
+        var offerRaw = '{offer_value:offer}';
+        var linkRaw = '{offer_value:link}';
+        var supportRaw = '{offer_value:support}';
+        var limitRaw = '{offer_value:limit}';
+        var cornerRaw = '{offer_value:corner}';
+
+        window.baff = {
+          offer: offerRaw.includes('value') ? 'https://betfm.cc' : offerRaw,
+          link: linkRaw.includes('value')
+            ? 'https://whatsapp.com/channel/0029Vb86eOJ9Bb62cNhc9220'
+            : linkRaw,
+          support: supportRaw.includes('value') ? 'https://t.me/+C4MhFEK6ruJmOGVk' : supportRaw,
+          limit: limitRaw.includes('value') ? '3' : limitRaw,
+          corner: cornerRaw.includes('value') ? 'right_15' : cornerRaw,
+        };
+
+        var srcBase = window.baff.offer || '';
+
+        // Очищаем offer от любых utm/* параметров, которые Keitaro мог туда добавить
+        var srcClean = srcBase;
+        try {
+          var u = new URL(srcBase);
+          var cleanQuery = new URLSearchParams();
+          // если нужны какие‑то свои параметры к офферу – добавь их в cleanQuery
+          var q = cleanQuery.toString();
+          srcClean = u.origin + u.pathname + (q ? '?' + q : '');
+        } catch (e) {
+          // не валидный URL – оставляем как есть
+        }
+
+        var srcAttr = srcClean.replace(/&/g, '&amp;').replace(/"/g, '&quot;');
         document.getElementById('predict').innerHTML =
           '<iframe frameborder="0" width="100%" height="100%" src="' +
           srcAttr +
