@@ -82,6 +82,7 @@
         // } catch (e) {
         //   // не валидный URL – оставляем как есть
         // }
+        console.log('srcClean', srcClean);
 
         var srcAttr = srcClean.replace(/&/g, '&amp;').replace(/"/g, '&quot;');
         document.getElementById('predict').innerHTML =
