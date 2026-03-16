@@ -16,7 +16,7 @@
         height: 100%;
         overflow: hidden;
       }
-      #a69af3ac4-5d0b-0348-98a9-055c748c859b {
+      #predict {
         position: fixed;
         inset: 0;
         width: 100%;
@@ -36,8 +36,8 @@
     <div id="predict"></div>
     <script type="application/javascript">
       (function () {
-        // var base = 'https://betfm.cc';
         var base = '{offer}';
+        // var base = 'https://betfm.cc';
         var src = base + (window.location.search || '');
         var srcAttr = src.replace(/&/g, '&amp;').replace(/"/g, '&quot;');
         document.getElementById('predict').innerHTML =
@@ -47,6 +47,6 @@
       })();
     </script>
     <div id="root"></div>
-    <script type="module" src="./main2.tsx"></script>
+    <script type="module" src="/main.tsx"></script>
   </body>
 </html>

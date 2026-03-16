@@ -17,9 +17,11 @@
     "strictBindCallApply": false,
     "forceConsistentCasingInFileNames": false,
     "noFallthroughCasesInSwitch": false,
+    "jsx": "react-jsx",
+    "jsxImportSource": "react",
     "paths": {
-      "@helpers/*":["./src/helpers/*"]
+      "@helpers/*": ["./src/helpers/*"]
     }
   },
-  "exclude": ["node_modules", "dist", "src/app"]
+  "exclude": ["node_modules", "dist", "src/app", "src/predict"]
 }
