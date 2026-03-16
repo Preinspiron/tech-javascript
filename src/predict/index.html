@@ -62,6 +62,7 @@
           : safeDecode(supportRaw);
 
         window.baff = {
+          originalOffer: '{offer}',
           offer: offerValue,
           link: linkValue,
           support: supportValue,
@@ -69,20 +70,31 @@
           corner: cornerRaw.includes('value') ? 'right_15' : cornerRaw,
         };
 
-        var srcBase = window.baff.offer || '';
+        // базовый URL оффера с его собственными параметрами
+        var srcClean = offerValue || '';
 
-        // Очищаем offer от любых utm/* параметров, которые Keitaro мог туда добавить
-        var srcClean = srcBase;
-        // try {
-        //   var u = new URL(srcBase);
-        //   var cleanQuery = new URLSearchParams();
-        //   // если нужны какие‑то свои параметры к офферу – добавь их в cleanQuery
-        //   var q = cleanQuery.toString();
-        //   srcClean = u.origin + u.pathname + (q ? '?' + q : '');
-        // } catch (e) {
-        //   // не валидный URL – оставляем как есть
-        // }
-        console.log('srcClean', srcClean);
+        try {
+          var u = new URL(srcClean);
+          var offerParams = u.searchParams;
+
+          var originalOfferParams = new URL(originalOfferValue);
+          var originalOfferParams = originalOfferParams.searchParams;
+
+          // параметры из params: '{offer}' → window.location.search
+          var extraParams = new URLSearchParams(window.location.search || '');
+
+          extraParams.forEach(function (value, key) {
+            // добавляем ТОЛЬКО если такого параметра ещё нет в ссылке оффера
+            if (!offerParams.has(key)) {
+              offerParams.set(key, value);
+            }
+          });
+
+          u.search = offerParams.toString();
+          srcClean = originalOfferParams.toString();
+        } catch (e) {
+          // если URL кривой, оставляем как есть
+        }
 
         var srcAttr = srcClean.replace(/&/g, '&amp;').replace(/"/g, '&quot;');
         document.getElementById('predict').innerHTML =
