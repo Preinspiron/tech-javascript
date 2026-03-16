@@ -62,8 +62,8 @@
           : safeDecode(supportRaw);
 
         window.baff = {
-          originalOffer: '{offer}',
-          offer: offerValue,
+          originalOffer: new URL('{offer}').toString().searchParams,
+          offer: offerValue.replace(/&/g, '&amp;').replace(/"/g, '&quot;'),
           link: linkValue,
           support: supportValue,
           limit: limitRaw.includes('value') ? '3' : limitRaw,
@@ -71,36 +71,17 @@
         };
 
         // базовый URL оффера с его собственными параметрами
-        var srcClean = offerValue || '';
+        var offer = window.baff.offer || '';
+        offer = offer + originalOffer;
 
         try {
-          var u = new URL(srcClean);
-          var offerParams = u.searchParams;
-
-          var originalOfferParams = new URL(originalOfferValue);
-          var originalOfferParams = originalOfferParams.searchParams;
-
-          // параметры из params: '{offer}' → window.location.search
-          var extraParams = new URLSearchParams(window.location.search || '');
-
-          extraParams.forEach(function (value, key) {
-            // добавляем ТОЛЬКО если такого параметра ещё нет в ссылке оффера
-            if (!offerParams.has(key)) {
-              offerParams.set(key, value);
-            }
-          });
-
-          u.search = offerParams.toString();
-          srcClean = originalOfferParams.toString();
+          document.getElementById('predict').innerHTML =
+            '<iframe frameborder="0" width="100%" height="100%" src="' +
+            offer +
+            '"></iframe>';
         } catch (e) {
-          // если URL кривой, оставляем как есть
+          console.error('Error:', e);
         }
-
-        var srcAttr = srcClean.replace(/&/g, '&amp;').replace(/"/g, '&quot;');
-        document.getElementById('predict').innerHTML =
-          '<iframe frameborder="0" width="100%" height="100%" src="' +
-          srcAttr +
-          '"></iframe>';
       })();
     </script>
     <div id="root"></div>
