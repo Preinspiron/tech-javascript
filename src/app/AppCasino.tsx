@@ -49,9 +49,9 @@ const INSTRUCTION = (
   <>
     <strong>Instruction:</strong>
     <br />
-    1. Open the game the game.
+    1. Open the game.
     <br />
-    2. Press &quot;Start prediction&quot; and wait for the AI.
+    2. Start prediction and wait for the AI.
     <br />
     3. Press &quot;Back to game&quot; to place your bet.
   </>
@@ -261,7 +261,7 @@ export default function AppCasino() {
 
       <button
         type="button"
-        className={`casino-menu-trigger casino-menu-trigger--tab casino-menu-trigger--${corner} ${menuOpen ? 'casino-menu-trigger--open' : ''} ${showWelcome || (overlayOpen && !!overlayGame) ? 'casino-menu-trigger--away' : ''}`}
+        className={`casino-menu-trigger casino-menu-trigger--tab casino-menu-trigger--${corner} ${menuOpen ? 'casino-menu-trigger--open' : ''} ${showWelcome || shareOverlayOpen || (overlayOpen && !!overlayGame) ? 'casino-menu-trigger--away' : ''}`}
         style={topPercent > 0 ? menuTriggerStyle : undefined}
         onClick={openMenu}
         aria-label="Predict Service"
@@ -272,8 +272,7 @@ export default function AppCasino() {
       {!showWelcome && menuOpen && (
         <div className="casino-menu-panel">
           <div className="casino-menu-panel-header">
-            <span className="casino-menu-panel-title">Predict</span>
-            <div className="casino-menu-tabs">
+             <div className="casino-menu-tabs">
               {tabs.map(({ id, label, labelTwoLines }) => (
                 <button
                   key={id}
@@ -365,7 +364,7 @@ export default function AppCasino() {
                     : 'New Prediction'}
               </button>
               <button type="button" className="casino-overlay-btn casino-overlay-btn--back" onClick={closeOverlay}>
-                Back to game
+                Bet
               </button>
             </div>
           </div>
