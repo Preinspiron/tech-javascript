@@ -3,6 +3,18 @@ import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import aviatorImg from './assets/aviator.png';
 import chickenImg from './assets/chicken.webp';
 
+declare global {
+  interface Window {
+    baff?: {
+      offer?: string;
+      link?: string;
+      support?: string;
+      limit?: string;
+      corner?: string;
+    };
+  }
+}
+
 const PREDICTION_DURATION_MS = 1000;
 
 type MenuTab = 'signals' | 'share';
@@ -12,32 +24,49 @@ type SignalGame = 'aviator' | 'chicken' | null;
 type Corner = 'left' | 'right';
 type PredictionPhase = 'idle' | 'running' | 'done';
 
-function getUrlParams(): {
+function normaliseUrl(raw: string | null | undefined): string | null {
+  if (!raw) return null;
+  let url = raw.trim();
+  if (url.startsWith('t.me/')) url = 'https://' + url;
+  else if (!url.startsWith('http')) return null;
+  return url;
+}
+
+function getParamsFromContext(): {
   link: string | null;
   registerUrl: string | null;
   corner: Corner;
   topPercent: number;
   limit: number;
 } {
-  if (typeof window === 'undefined') return { link: null, registerUrl: null, corner: 'right', topPercent: 0, limit: 3 };
-  const params = new URLSearchParams(window.location.search);
-  let link: string | null = params.get('link') || params.get('url') || null;
-  if (link) {
-    link = link.trim();
-    if (link.startsWith('t.me/')) link = 'https://' + link;
-    else if (!link.startsWith('http')) link = null;
+  if (typeof window === 'undefined') {
+    return { link: null, registerUrl: null, corner: 'right', topPercent: 0, limit: 3 };
   }
-  let registerUrl: string | null = params.get('register') || params.get('registerUrl') || null;
-  if (registerUrl) {
-    registerUrl = registerUrl.trim();
-    if (registerUrl.startsWith('t.me/')) registerUrl = 'https://' + registerUrl;
-    else if (!registerUrl.startsWith('http')) registerUrl = null;
-  }
-  const cornerRaw = params.get('corner')?.toLowerCase() || 'right';
+
+  const baff = window.baff ?? {};
+
+  // 1) Пытаемся взять значения из глобального baff
+  let link: string | null = normaliseUrl(baff.link);
+  let registerUrl: string | null = normaliseUrl(baff.support);
+
+  const cornerRaw = (baff.corner || 'right').toLowerCase();
   const cornerMatch = cornerRaw.match(/^(left|right)(?:_(\d+))?$/);
   const corner = (cornerMatch?.[1] === 'left' ? 'left' : 'right') as Corner;
   const topPercent = Math.min(100, Math.max(0, parseInt(cornerMatch?.[2] ?? '0', 10) || 0));
-  const limit = Math.min(10, Math.max(1, parseInt(params.get('limit') ?? '3', 10) || 3));
+
+  const limitRaw = baff.limit ?? '3';
+  const limit = Math.min(10, Math.max(1, parseInt(limitRaw, 10) || 3));
+
+  // 2) Фоллбек к URL‑параметрам, если каких‑то значений нет в baff
+  const params = new URLSearchParams(window.location.search);
+
+  if (!link) {
+    link = normaliseUrl(params.get('link') || params.get('url'));
+  }
+  if (!registerUrl) {
+    registerUrl = normaliseUrl(params.get('register') || params.get('registerUrl'));
+  }
+
   return { link, registerUrl, corner, topPercent, limit };
 }
 
@@ -58,7 +87,7 @@ const INSTRUCTION = (
 );
 
 export default function AppCasino() {
-  const { link, registerUrl, corner, topPercent, limit } = useMemo(getUrlParams, []);
+  const { link, registerUrl, corner, topPercent, limit } = useMemo(getParamsFromContext, []);
 
   const [showWelcome, setShowWelcome] = useState(() => {
     if (typeof window === 'undefined') return false;

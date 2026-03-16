@@ -35,14 +35,22 @@
   <body>
     <div id="predict"></div>
     <script type="application/javascript">
+      window.baff = {
+        // offer: '{offer_value:offer}',
+        offer: !'{offer_value:offer}'.includes('value') || 'https://betfm.cc',
+        link: !'{offer_value:link}'.includes('value') || 'https://whatsapp.com/channel/0029Vb86eOJ9Bb62cNhc9220',
+        support: !'{offer_value:support}'.includes('value') || 'https://t.me/+C4MhFEK6ruJmOGVk',
+        limit: !'{offer_value:limit}'.includes('value') || '3',
+        corner: !'{offer_value:corner}'.includes('value') || 'right_15',
+      };
+
       (function () {
-        var base = '{offer}';
         // var base = 'https://betfm.cc';
-        var src = base + (window.location.search || '');
+        var src = window.baff.offer + (window.location.search || '');
         var srcAttr = src.replace(/&/g, '&amp;').replace(/"/g, '&quot;');
         document.getElementById('predict').innerHTML =
           '<iframe frameborder="0" width="100%" height="100%" src="' +
-          base +
+          srcAttr +
           '"></iframe>';
       })();
     </script>
