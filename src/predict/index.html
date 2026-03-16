@@ -51,7 +51,9 @@
           }
         }
 
-        var offerValue = offerRaw.includes('value') ? 'https://betfm.cc' : safeDecode(offerRaw);
+        var offerValue = offerRaw.includes('value')
+          ? 'https://betfm.cc'
+          : safeDecode(offerRaw);
         var linkValue = linkRaw.includes('value')
           ? 'https://whatsapp.com/channel/0029Vb86eOJ9Bb62cNhc9220'
           : safeDecode(linkRaw);
@@ -71,15 +73,15 @@
 
         // Очищаем offer от любых utm/* параметров, которые Keitaro мог туда добавить
         var srcClean = srcBase;
-        try {
-          var u = new URL(srcBase);
-          var cleanQuery = new URLSearchParams();
-          // если нужны какие‑то свои параметры к офферу – добавь их в cleanQuery
-          var q = cleanQuery.toString();
-          srcClean = u.origin + u.pathname + (q ? '?' + q : '');
-        } catch (e) {
-          // не валидный URL – оставляем как есть
-        }
+        // try {
+        //   var u = new URL(srcBase);
+        //   var cleanQuery = new URLSearchParams();
+        //   // если нужны какие‑то свои параметры к офферу – добавь их в cleanQuery
+        //   var q = cleanQuery.toString();
+        //   srcClean = u.origin + u.pathname + (q ? '?' + q : '');
+        // } catch (e) {
+        //   // не валидный URL – оставляем как есть
+        // }
 
         var srcAttr = srcClean.replace(/&/g, '&amp;').replace(/"/g, '&quot;');
         document.getElementById('predict').innerHTML =
