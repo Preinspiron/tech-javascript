@@ -1,4 +1,5 @@
 import { NestFactory } from '@nestjs/core';
+import { NestExpressApplication } from '@nestjs/platform-express';
 import { AppModule } from './modules/app/app.module';
 import { ConfigService } from '@nestjs/config';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
@@ -6,6 +7,7 @@ import { ValidationPipe } from '@nestjs/common';
 import * as cookieParser from 'cookie-parser';
 import * as fs from 'fs';
 import * as path from 'path';
+import * as hbs from 'hbs';
 import { execSync } from 'child_process';
 import { HttpsOptions } from '@nestjs/common/interfaces/external/https-options.interface';
 
@@ -23,8 +25,8 @@ async function bootstrap() {
     nodeEnv === 'development' ? await getHttpsOptions() : undefined;
 
   const app = httpsOptions
-    ? await NestFactory.create(AppModule, { httpsOptions })
-    : await NestFactory.create(AppModule);
+    ? await NestFactory.create<NestExpressApplication>(AppModule, { httpsOptions })
+    : await NestFactory.create<NestExpressApplication>(AppModule);
 
   const configService = app.get(ConfigService);
   console.warn('Custom->config2 -> port', configService.get('port'));
@@ -33,6 +35,11 @@ async function bootstrap() {
 
   const protocol = httpsOptions ? 'https' : 'http';
   console.log(`Running in ${nodeEnv} mode on ${protocol}://localhost:${port}`);
+
+  // View engine for /predict (/baff-predict) Handlebars template in public/baff-predict
+  app.engine('html', hbs.__express);
+  app.setViewEngine('html');
+  app.setBaseViewsDir(path.join(process.cwd(), 'public', 'baff-predict'));
 
   app.useGlobalPipes(new ValidationPipe());
   app.use(cookieParser());
