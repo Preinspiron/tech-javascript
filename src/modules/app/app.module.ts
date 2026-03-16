@@ -35,11 +35,6 @@ import { BotModule } from '../bot/bot.module';
       rootPath: join(process.cwd(), 'public', 'baff-mini'),
       serveRoot: '/baff-mini',
     }),
-    ServeStaticModule.forRoot({
-      // Use project root so it works both in dev (ts-node) and in dist on Render
-      rootPath: join(process.cwd(), 'public', 'baff-777'),
-      serveRoot: '/baff-777',
-    }),
     SequelizeModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
