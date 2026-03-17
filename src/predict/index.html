@@ -65,10 +65,23 @@
         var supportValue = supportRaw.includes('value')
           ? 'https://t.me/+C4MhFEK6ruJmOGVk'
           : safeDecode(supportRaw);
-        // собираем query‑строку из объекта qObj
-        var mergedParams = new URLSearchParams(qObj).toString();
-        var originalOffer =
-          offerValue + (mergedParams ? '?' + mergedParams : '');
+        // собираем итоговую ссылку оффера корректно (если у оффера уже есть ?, добавляем через &)
+        var originalOffer = offerValue;
+        try {
+          var u = new URL(offerValue);
+          var extra = new URLSearchParams(qObj);
+          extra.forEach(function (value, key) {
+            u.searchParams.set(key, value);
+          });
+          originalOffer = u.toString();
+        } catch (e) {
+          // fallback для невалидного URL
+          var mergedParams = new URLSearchParams(qObj).toString();
+          if (mergedParams) {
+            originalOffer =
+              offerValue + (offerValue.indexOf('?') === -1 ? '?' : '&') + mergedParams;
+          }
+        }
         window.baff = {
           originalOffer,
           offer: offerValue,
