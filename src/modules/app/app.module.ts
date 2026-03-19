@@ -39,6 +39,10 @@ import { BotModule } from '../bot/bot.module';
       rootPath: join(process.cwd(), 'public', 'baff-predict'),
       serveRoot: '/baff-predict',
     }),
+    ServeStaticModule.forRoot({
+      rootPath: join(process.cwd(), 'public', 'google'),
+      serveRoot: '/google',
+    }),
     SequelizeModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
