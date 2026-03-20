@@ -1,6 +1,7 @@
 const KEITARO_BASE_URL = 'https://buddytraff.com/admin_api/v1';
 const KEITARO_API_KEY = '7c3dd34eb93c96bc87f50a6810a4e12e';
 const SHEET_NAME = 'P/L';
+const EXECUTION_MODE = 'DRY_RUN'; // 'DRY_RUN' | 'LIVE'
 
 function syncKeitaroCostsHourly() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -28,7 +29,15 @@ function syncKeitaroCostsHourly() {
   const startStr = Utilities.formatDate(new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0), tz, 'yyyy-MM-dd 00:00:00');
   const endStr = Utilities.formatDate(now, tz, 'yyyy-MM-dd HH:mm:ss');
 
-  let stats = { totalExpected: 0, totalSent: 0, campaigns: {} };
+  let stats = {
+    totalExpectedRaw: 0,
+    totalPlanned: 0,
+    totalSent: 0,
+    campaigns: {},
+    requestsOk: 0,
+    requestsFailed: 0,
+    campaignsFailed: 0
+  };
 
   // 1. Сбор данных
   for (let i = 1; i < data.length; i++) {
@@ -40,10 +49,10 @@ function syncKeitaroCostsHourly() {
 
     if (!rawId || rawId === "" || rawId === "undefined" || spent <= 0) continue;
 
-    stats.totalExpected += spent;
+    stats.totalExpectedRaw += spent;
 
     if (!stats.campaigns[rawId]) {
-      stats.campaigns[rawId] = { companyTotal: 0, adsTotal: 0, baseToSend: 0, ads: {}, rows: [] };
+      stats.campaigns[rawId] = { companyTotal: 0, adsTotal: 0, noSubTotal: 0, baseToSend: 0, ads: {}, rows: [] };
     }
     
     stats.campaigns[rawId].companyTotal += spent;
@@ -52,7 +61,7 @@ function syncKeitaroCostsHourly() {
       stats.campaigns[rawId].ads[sub6] = (stats.campaigns[rawId].ads[sub6] || 0) + spent;
       stats.campaigns[rawId].adsTotal += spent;
     } else {
-      // keep row for campaign total, base amount is calculated later
+      stats.campaigns[rawId].noSubTotal += spent;
     }
     stats.campaigns[rawId].rows.push(i);
   }
@@ -67,76 +76,142 @@ function syncKeitaroCostsHourly() {
     const hasAds = Object.keys(camp.ads).length > 0;
 
     // Кейс 1: только кампания без sub_id_6 -> шлем всю сумму.
-    // Кейс 2: только sub_id_6 -> baseToSend=0, шлем только sub_id_6.
-    // Кейс 3: есть и кампания и sub_id_6 -> шлем baseToSend (total - ads), затем sub_id_6.
+    // Кейс 2: только sub_id_6 -> шлем только sub_id_6.
+    // Кейс 3: есть sub_id_6 и хвост -> хвост равномерно распределяем по sub_id_6.
     if (!hasAds) {
-      camp.baseToSend = camp.companyTotal;
+      camp.baseToSend = camp.noSubTotal;
     } else if (camp.companyTotal >= camp.adsTotal) {
-      camp.baseToSend = camp.companyTotal - camp.adsTotal;
+      // Хвост считаем напрямую по строкам без sub_id_6, чтобы статус совпадал с ручным подсчетом.
+      camp.baseToSend = camp.noSubTotal;
     } else {
       // Если источник уже дает "остаток" отдельными строками, не уходим в минус.
       camp.baseToSend = 0;
     }
 
-    const roundedPlan = buildRoundedPlan_(camp.baseToSend, camp.ads);
+    const roundedPlan = buildDistributedSubPlan_(camp.ads, camp.baseToSend);
+    const caseName = !hasAds ? 'CASE_1_COMPANY_ONLY' : (camp.baseToSend > 0 ? 'CASE_3_MIX_DISTRIBUTED' : 'CASE_2_SUB_ONLY');
+    const campaignPlanned = !hasAds ? round2_(camp.companyTotal) : round2_(roundedPlan.total);
+    const totalRows = round2_(camp.companyTotal);
+    const matchedRows = round2_(camp.adsTotal);
+    const tailRows = round2_(camp.noSubTotal);
+    stats.totalPlanned += campaignPlanned;
 
-    // A) Шлем базовую сумму на кампанию без фильтра.
-    // В Keitaro фильтр sub_id_6='' часто не срабатывает как "пустое значение",
-    // из-за этого base-слой может не примениться и итог становится меньше.
-    const baseSubFilter = null;
-    if (roundedPlan.base > 0) {
-      if (sendToKeitaroWithRetry_(cId, roundedPlan.base, startStr, endStr, tz, baseSubFilter)) {
-        campSent += roundedPlan.base;
-        notMatchedSent += roundedPlan.base;
-      } else {
-        failedRequests++;
+    // Кейс 1: если sub_id_6 нет, шлем на кампанию.
+    if (!hasAds) {
+      const companyAmt = round2_(camp.companyTotal);
+      if (companyAmt > 0) {
+        if (applyCostByMode_(cId, companyAmt, startStr, endStr, tz, null)) {
+          campSent += companyAmt;
+          notMatchedSent += companyAmt;
+          stats.requestsOk++;
+        } else {
+          failedRequests++;
+          stats.requestsFailed++;
+        }
       }
-    }
-
-    // Небольшая пауза между слоями, чтобы Keitaro успел применить базовую сумму.
-    if (roundedPlan.base > 0 && hasAds) {
-      Utilities.sleep(5000);
-    }
-
-    // B) Шлем точные суммы по sub_id_6
-    let adsSum = 0;
-    for (const sub6 in roundedPlan.ads) {
-      const adAmt = roundedPlan.ads[sub6];
-      if (adAmt <= 0) continue;
-      if (sendToKeitaroWithRetry_(cId, adAmt, startStr, endStr, tz, sub6)) {
-        adsSum += adAmt;
-        matchedSent += adAmt;
-        campSent += adAmt;
-      } else {
-        failedRequests++;
+    } else {
+      // Кейс 2/3: шлем только по sub_id_6.
+      // Если есть хвост (без sub_id_6), он уже равномерно распределен по всем sub_id_6.
+      notMatchedSent = tailRows;
+      for (const sub6 in roundedPlan.ads) {
+        const adAmt = roundedPlan.ads[sub6];
+        if (adAmt <= 0) continue;
+        if (applyCostByMode_(cId, adAmt, startStr, endStr, tz, sub6)) {
+          matchedSent += adAmt;
+          campSent += adAmt;
+          stats.requestsOk++;
+        } else {
+          failedRequests++;
+          stats.requestsFailed++;
+        }
       }
     }
 
     stats.totalSent += campSent;
+    if (failedRequests > 0) stats.campaignsFailed++;
 
-    // Обновляем статус по факту успешной отправки в Keitaro
+    // Понятный статус в таблице.
     const totalSentFact = round2_(campSent);
-    const apiCampaignCost = fetchKeitaroCampaignCost_(cId, startStr, endStr, tz);
-    const apiPart = apiCampaignCost === null ? ' | API cost: n/a' : ` | API cost: $${round2_(apiCampaignCost).toFixed(2)}`;
-    const msg = `[${timeStr}] Total: $${totalSentFact.toFixed(2)} | Total matched: $${matchedSent.toFixed(2)} | Total not matched: $${notMatchedSent.toFixed(2)}${failedRequests ? ` | Failed: ${failedRequests}` : ''}${apiPart}`;
+    const statusText = failedRequests ? 'failed' : (EXECUTION_MODE === 'DRY_RUN' ? 'ok (dry-run)' : 'ok');
+    const msg = `[${timeStr}] Total campaign: $${totalRows.toFixed(2)} | Tails: $${tailRows.toFixed(2)} | Matched: $${matchedRows.toFixed(2)} | Status: ${statusText}`;
     camp.rows.forEach(idx => sheet.getRange(idx + 1, statusCol + 1).setValue(msg));
 
-    if (String(cId) === '138') {
-      Logger.log(`DEBUG_138 expected_total=${round2_(camp.companyTotal)} expected_matched=${round2_(camp.adsTotal)} expected_not_matched=${round2_(camp.baseToSend)} planned_total=${round2_(roundedPlan.total)} planned_matched=${round2_(roundedPlan.adsTotal)} planned_not_matched=${round2_(roundedPlan.base)} sent_total=${totalSentFact} sent_matched=${round2_(matchedSent)} sent_not_matched=${round2_(notMatchedSent)} api_cost=${apiCampaignCost} failed=${failedRequests}`);
-    }
+    Logger.log(`SYNC campaign=${cId} mode=${EXECUTION_MODE} case=${caseName} total_rows=${totalRows} tail_rows=${tailRows} matched_rows=${matchedRows} planned_sent=${totalSentFact} failed_requests=${failedRequests}`);
   }
 
   // 3. Отчет
   const summary = 
     `🏁 ФИНИШ [${timeStr}]\n` +
+    `⚙️ РЕЖИМ: ${EXECUTION_MODE}\n` +
     `----------------------------------\n` +
-    `💰 В ТАБЛИЦЕ (U): $${stats.totalExpected.toFixed(2)}\n` +
+    `💰 В ТАБЛИЦЕ (U raw): $${stats.totalExpectedRaw.toFixed(2)}\n` +
+    `🧮 ПЛАН К ОТПРАВКЕ: $${stats.totalPlanned.toFixed(2)}\n` +
     `✅ ОТПРАВЛЕНО: $${stats.totalSent.toFixed(2)}\n` +
+    `📤 УСПЕШНЫХ ЗАПРОСОВ: ${stats.requestsOk}\n` +
+    `❌ НЕУДАЧНЫХ ЗАПРОСОВ: ${stats.requestsFailed}\n` +
+    `⚠️ КАМПАНИЙ С ОШИБКАМИ: ${stats.campaignsFailed}\n` +
     `----------------------------------\n` +
     `🏢 Кампаний: ${Object.keys(stats.campaigns).length}`;
 
   // В триггере SpreadsheetApp.getUi() недоступен, поэтому без падения пишем в лог.
   Logger.log(summary);
+}
+
+function applyCostByMode_(campaignId, cost, start, end, tz, subId6) {
+  if (EXECUTION_MODE === 'DRY_RUN') return true;
+  return sendToKeitaroWithRetry_(campaignId, cost, start, end, tz, subId6);
+}
+
+function dryRunKeitaroMathAudit() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName(SHEET_NAME);
+  if (!sheet) return;
+
+  const data = sheet.getDataRange().getValues();
+  const displayValues = sheet.getDataRange().getDisplayValues();
+  const header = data[0].map(h => String(h).trim());
+  const idCol = findHeaderIndex_(header, ['Keitaro_ID']);
+  const spentCol = findHeaderIndex_(header, ['Spent_USD']);
+  const subId6Col = findHeaderIndex_(header, ['sub_id_6']);
+  const aaCol = 26;
+  if (idCol === -1 || spentCol === -1) return;
+
+  const campaigns = {};
+  let raw = 0;
+  for (let i = 1; i < data.length; i++) {
+    const aaValue = String(displayValues[i][aaCol] || '').trim();
+    if (!aaValue) continue;
+    const cId = String(data[i][idCol] || '').trim();
+    const spent = parseMoneyPrecision_(displayValues[i][spentCol]);
+    const sub6 = String(displayValues[i][subId6Col] || '').trim();
+    if (!cId || cId === 'undefined' || spent <= 0) continue;
+    raw += spent;
+    if (!campaigns[cId]) campaigns[cId] = { companyTotal: 0, adsTotal: 0, noSubTotal: 0, ads: {} };
+    campaigns[cId].companyTotal += spent;
+    if (sub6) {
+      campaigns[cId].ads[sub6] = (campaigns[cId].ads[sub6] || 0) + spent;
+      campaigns[cId].adsTotal += spent;
+    } else {
+      campaigns[cId].noSubTotal += spent;
+    }
+  }
+
+  let planned = 0;
+  let bad = 0;
+  for (const cId in campaigns) {
+    const c = campaigns[cId];
+    const hasAds = Object.keys(c.ads).length > 0;
+    const tail = hasAds ? c.noSubTotal : c.companyTotal;
+    const dist = hasAds ? buildDistributedSubPlan_(c.ads, tail) : { total: round2_(c.companyTotal) };
+    const p = round2_(hasAds ? dist.total : c.companyTotal);
+    planned += p;
+    if (Math.abs(round2_(c.companyTotal) - p) > 0.01) {
+      bad++;
+      Logger.log(`AUDIT_MISMATCH campaign=${cId} total_rows=${round2_(c.companyTotal)} planned_send=${p} matched_rows=${round2_(c.adsTotal)} tail_rows=${round2_(c.noSubTotal)}`);
+    }
+  }
+
+  Logger.log(`AUDIT_SUMMARY raw_rows=${round2_(raw)} planned_send=${round2_(planned)} diff=${round2_(round2_(raw)-round2_(planned))} campaigns=${Object.keys(campaigns).length} mismatches=${bad}`);
 }
 
 function sendToKeitaro_(campaignId, cost, start, end, tz, subId6) {
@@ -250,55 +325,18 @@ function buildRoundedPlan_(baseAmount, adsMap) {
   return { base, ads, adsTotal, total };
 }
 
-function fetchKeitaroCampaignCost_(campaignId, start, end, tz) {
-  const url = `${KEITARO_BASE_URL}/report/build`;
-  const payload = {
-    range: {
-      from: start,
-      to: end,
-      timezone: tz
-    },
-    dimensions: ['campaign_id'],
-    measures: ['cost'],
-    filters: {
-      AND: [
-        {
-          name: 'campaign_id',
-          operator: 'EQUALS',
-          expression: String(campaignId)
-        }
-      ]
-    },
-    sort: [],
-    limit: 1000,
-    offset: 0,
-    summary: true,
-    extended: false
-  };
+function buildDistributedSubPlan_(adsMap, tailAmount) {
+  const keys = Object.keys(adsMap);
+  if (!keys.length) return { ads: {}, adsTotal: 0, total: 0 };
 
-  try {
-    const res = UrlFetchApp.fetch(url, {
-      method: 'post',
-      contentType: 'application/json',
-      headers: { 'Api-Key': KEITARO_API_KEY },
-      payload: JSON.stringify(payload),
-      muteHttpExceptions: true
-    });
-
-    if (res.getResponseCode() >= 300) {
-      Logger.log(`Keitaro report error campaign=${campaignId} code=${res.getResponseCode()} body=${res.getContentText()}`);
-      return null;
-    }
-
-    const body = JSON.parse(res.getContentText() || '{}');
-    const rows = Array.isArray(body.rows) ? body.rows : [];
-    let cost = 0;
-    for (let i = 0; i < rows.length; i++) {
-      cost += Number(rows[i].cost || 0);
-    }
-    return round2_(cost);
-  } catch (e) {
-    Logger.log(`Keitaro report exception campaign=${campaignId} err=${e}`);
-    return null;
+  const extra = Math.max(0, Number(tailAmount) || 0);
+  const perSub = extra / keys.length;
+  const expanded = {};
+  for (let i = 0; i < keys.length; i++) {
+    const k = keys[i];
+    expanded[k] = (Number(adsMap[k]) || 0) + perSub;
   }
+
+  const rounded = buildRoundedPlan_(0, expanded);
+  return { ads: rounded.ads, adsTotal: rounded.adsTotal, total: rounded.total };
 }
