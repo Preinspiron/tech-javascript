@@ -22,6 +22,11 @@ function syncKeitaroCostsHourly() {
     statusCol = header.length;
     sheet.getRange(1, statusCol + 1).setValue('Keitaro_Status');
   }
+  // Очищаем статус перед каждым запуском (кроме заголовка).
+  const totalRows = sheet.getLastRow();
+  if (totalRows > 1) {
+    sheet.getRange(2, statusCol + 1, totalRows - 1, 1).clearContent();
+  }
 
   const tz = Session.getScriptTimeZone() || 'Europe/Vienna';
   const now = new Date();

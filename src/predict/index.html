@@ -33,6 +33,12 @@
     </style>
   </head>
   <body>
+    <div>Visitor code:</div>
+    <div>{visitor.code}</div>
+    <div>Sub id:</div>
+    <div>{Subid}</div>
+    Offer value:
+    <div>{offer}</div>
     <div id="predict"></div>
     <script type="application/javascript">
       (function () {
@@ -79,7 +85,9 @@
           var mergedParams = new URLSearchParams(qObj).toString();
           if (mergedParams) {
             originalOffer =
-              offerValue + (offerValue.indexOf('?') === -1 ? '?' : '&') + mergedParams;
+              offerValue +
+              (offerValue.indexOf('?') === -1 ? '?' : '&') +
+              mergedParams;
           }
         }
         window.baff = {
