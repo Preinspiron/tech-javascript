@@ -136,7 +136,10 @@ function syncKeitaroCostsHourly() {
     const msg = `[${timeStr}] Total campaign: $${totalRows.toFixed(2)} | Tails: $${tailRows.toFixed(2)} | Matched: $${matchedRows.toFixed(2)} | Status: ${statusText}`;
     camp.rows.forEach(idx => sheet.getRange(idx + 1, statusCol + 1).setValue(msg));
 
-    Logger.log(`SYNC campaign=${cId} mode=${EXECUTION_MODE} case=${caseName} total_rows=${totalRows} tail_rows=${tailRows} matched_rows=${matchedRows} planned_sent=${totalSentFact} failed_requests=${failedRequests}`);
+    const syncStatus = failedRequests ? 'FAILED' : 'OK';
+    Logger.log(
+      `[${timeStr}] SYNC | campaign: ${cId} | mode: ${EXECUTION_MODE} | case: ${caseName} | total: $${totalRows.toFixed(2)} | tails: $${tailRows.toFixed(2)} | matched: $${matchedRows.toFixed(2)} | sent: $${totalSentFact.toFixed(2)} | failed_requests: ${failedRequests} | status: ${syncStatus}`,
+    );
   }
 
   // 3. Отчет
