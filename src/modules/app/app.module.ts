@@ -21,6 +21,8 @@ import { SegmentModule } from '../segment/segment.module';
 import { Segment } from '../segment/models/segment.model';
 import { BotSubscription } from '../bot/models/bot.model';
 import { BotModule } from '../bot/bot.module';
+import { Cost } from '../cost/models/cost.model';
+import { CostModule } from '../cost/cost.module';
 
 @Module({
   imports: [
@@ -71,7 +73,7 @@ import { BotModule } from '../bot/bot.module';
           database: database || '',
           synchronize: true,
           autoLoadModels: true,
-          models: [User, Watchlist, Token, Pixel, Event, Creo, Segment, BotSubscription],
+          models: [User, Watchlist, Token, Pixel, Event, Creo, Segment, BotSubscription, Cost],
           dialectOptions: {
             ssl: {
               require: true,
@@ -88,6 +90,7 @@ import { BotModule } from '../bot/bot.module';
     CreoModule,
     SegmentModule,
     BotModule,
+    CostModule,
   ],
   controllers: [AppController],
   providers: [AppService],
