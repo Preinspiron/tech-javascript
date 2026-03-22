@@ -360,7 +360,7 @@ function sendToKeitaro_(campaignId, cost, start, end, tz, subId6) {
     cost: round2_(cost),
     // cost: 0,
     currency: 'USD',
-    // only_campaign_uniques: false
+    only_campaign_uniques: false,
   };
 
   // null/undefined => отправка на всю кампанию, '' => только пустой sub_id_6, 'abc' => конкретный sub_id_6

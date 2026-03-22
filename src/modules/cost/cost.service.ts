@@ -1,7 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
+import { Op } from 'sequelize';
 import { Cost } from './models/cost.model';
-import { CostItemDto, UpdateCostDto } from './dto/cost.dto';
+import { CostDateRangeDto, CostItemDto, UpdateCostDto } from './dto/cost.dto';
 
 @Injectable()
 export class CostService {
@@ -13,8 +14,33 @@ export class CostService {
   async getByKeitaroId(keitaroId: number): Promise<Cost[]> {
     return this.costModel.findAll({
       where: { keitaroId },
-      order: [['costDate', 'DESC'], ['id', 'DESC']],
+      order: [
+        ['costDate', 'DESC'],
+        ['id', 'DESC'],
+      ],
     });
+  }
+
+  /** Все косты или по диапазону costDate (start обязателен для фильтра; end необязателен). */
+  async findAll(dto?: CostDateRangeDto): Promise<Cost[]> {
+    const order: [string, string][] = [
+      ['costDate', 'DESC'],
+      ['id', 'DESC'],
+    ];
+
+    const start = dto?.start?.trim();
+    if (!start) {
+      return this.costModel.findAll({ order });
+    }
+
+    const end = dto?.end?.trim();
+    const where = {
+      costDate: end
+        ? { [Op.between]: [start, end] as [string, string] }
+        : { [Op.gte]: start },
+    };
+
+    return this.costModel.findAll({ where, order });
   }
 
   async createUnique(

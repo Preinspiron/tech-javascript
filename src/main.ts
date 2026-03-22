@@ -10,6 +10,10 @@ import * as path from 'path';
 import * as hbs from 'hbs';
 import { execSync } from 'child_process';
 import { HttpsOptions } from '@nestjs/common/interfaces/external/https-options.interface';
+import {
+  SWAGGER_AUTH_HEADER,
+  SWAGGER_AUTH_KEY,
+} from './constants/swagger-auth.constants';
 
 async function bootstrap() {
   // Используем NODE_ENV напрямую из переменных окружения
@@ -25,7 +29,9 @@ async function bootstrap() {
     nodeEnv === 'development' ? await getHttpsOptions() : undefined;
 
   const app = httpsOptions
-    ? await NestFactory.create<NestExpressApplication>(AppModule, { httpsOptions })
+    ? await NestFactory.create<NestExpressApplication>(AppModule, {
+        httpsOptions,
+      })
     : await NestFactory.create<NestExpressApplication>(AppModule);
 
   const configService = app.get(ConfigService);
@@ -45,17 +51,22 @@ async function bootstrap() {
   app.use(cookieParser());
   app.enableCors({
     origin: '*',
-    methods: 'GET,POST',
-    allowedHeaders: 'Content-Type',
+    methods: 'GET,POST,PUT,DELETE,PATCH,OPTIONS',
+    allowedHeaders: ['Content-Type', SWAGGER_AUTH_HEADER],
   });
   app.getHttpAdapter().getInstance().set('trust proxy', true);
 
   const config = new DocumentBuilder()
-    .setTitle('Lesson api')
-    .setDescription('This api for lesson')
+    .setTitle('Baff backend api')
+    .setDescription('cost update')
     .setVersion('1.0')
     .addTag('API')
+    .addApiKey(
+      { type: 'apiKey', in: 'header', name: SWAGGER_AUTH_HEADER },
+      SWAGGER_AUTH_HEADER,
+    )
     .build();
+    
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api', app, document);
 
